@@ -4,7 +4,7 @@ import { useEffect, useRef, useCallback } from "react";
 import type { Camera, WebGLRenderer } from "three";
 
 // Lazily import OrbitControls only on client
-let OrbitControlsClass: typeof import("three/examples/jsm/controls/OrbitControls").OrbitControls;
+let OrbitControlsClass: typeof import("three/examples/jsm/controls/OrbitControls.js").OrbitControls;
 
 interface UseGlobeControlsOptions {
   camera: Camera | null;
@@ -14,7 +14,7 @@ interface UseGlobeControlsOptions {
 }
 
 export function useGlobeControls({ camera, renderer, earthGroup, enabled }: UseGlobeControlsOptions) {
-  const controlsRef = useRef<InstanceType<typeof import("three/examples/jsm/controls/OrbitControls").OrbitControls> | null>(null);
+  const controlsRef = useRef<InstanceType<typeof import("three/examples/jsm/controls/OrbitControls.js").OrbitControls> | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isAutoRotatingRef = useRef(true);
   const lastInteractionRef = useRef(0);
@@ -31,7 +31,7 @@ export function useGlobeControls({ camera, renderer, earthGroup, enabled }: UseG
   useEffect(() => {
     if (!camera || !renderer || !enabled) return;
 
-    let controls: InstanceType<typeof import("three/examples/jsm/controls/OrbitControls").OrbitControls>;
+    let controls: InstanceType<typeof import("three/examples/jsm/controls/OrbitControls.js").OrbitControls>;
 
     async function init() {
       const { OrbitControls } = await import("three/examples/jsm/controls/OrbitControls.js");
