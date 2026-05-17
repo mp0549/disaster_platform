@@ -69,3 +69,4 @@ app/prisma/migrations/
 .agents/
 .mcp.json
 skills-lock.json
+CLAUDE.md
