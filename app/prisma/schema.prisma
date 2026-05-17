@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum EventSource {
+  USGS
+  EONET
+  GDACS
+  FEMA
+  RELIEFWEB
+  FIRMS
+  NOAA
+}
+
+enum DisasterType {
+  EARTHQUAKE
+  WILDFIRE
+  FLOOD
+  STORM
+  VOLCANO
+  DROUGHT
+  OTHER
+}
+
+enum Severity {
+  LOW
+  MODERATE
+  HIGH
+  EXTREME
+}
+
+enum EventStatus {
+  ACTIVE
+  CLOSED
+  UNKNOWN
+}
+
+model Event {
+  id                   String       @id @default(uuid())
+  externalId           String       @map("external_id")
+  source               EventSource
+  type                 DisasterType
+  title                String
+  description          String?      @db.Text
+  severity             Severity?
+  status               EventStatus  @default(UNKNOWN)
+  lat                  Float
+  lon                  Float
+  geometry             Json?
+  country              String?
+  region               String?
+  startedAt            DateTime     @map("started_at")
+  updatedAt            DateTime     @updatedAt @map("updated_at")
+  createdAt            DateTime     @default(now()) @map("created_at")
+  rawData              Json         @map("raw_data")
+  aiSummary            String?      @map("ai_summary") @db.Text
+  aiSummaryGeneratedAt DateTime?    @map("ai_summary_generated_at")
+
+  // V2 stub fields
+  impactScore         Float?       @map("impact_score")
+  populationExposure  Int?         @map("population_exposure")
+  eventGroupId        String?      @map("event_group_id")
+  satelliteImageUrl   String?      @map("satellite_image_url")
+
+  updates             EventUpdate[]
+
+  @@unique([source, externalId], name: "source_external_id")
+  @@index([type])
+  @@index([severity])
+  @@index([status])
+  @@index([startedAt])
+  @@index([lat, lon])
+  @@map("events")
+}
+
+model EventUpdate {
+  id            String   @id @default(uuid())
+  eventId       String   @map("event_id")
+  changedFields Json     @map("changed_fields")
+  snapshot      Json
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  event         Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([createdAt])
+  @@map("event_updates")
+}
+
+model SourceStatus {
+  id            String      @id @default(uuid())
+  source        EventSource @unique
+  lastFetchedAt DateTime?   @map("last_fetched_at")
+  eventCount    Int         @default(0) @map("event_count")
+  lastError     String?     @map("last_error") @db.Text
+  isHealthy     Boolean     @default(true) @map("is_healthy")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  @@map("source_status")
+}

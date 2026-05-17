@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: disaster_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: disaster_user
+      POSTGRES_PASSWORD: disaster_pass
+      POSTGRES_DB: disaster_platform
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U disaster_user -d disaster_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    container_name: disaster_worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL_DIRECT: postgresql://disaster_user:disaster_pass@postgres:5432/disaster_platform
+      WORKER_PORT: 8000
+      NASA_API_KEY: ${NASA_API_KEY:-}
+      FIRMS_MAP_KEY: ${FIRMS_MAP_KEY:-}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./worker:/app
+    command: python main.py
+
+volumes:
+  postgres_data:
