@@ -10,8 +10,8 @@ import ReliefWebPanel from "@/components/event-detail/ReliefWebPanel";
 import UpdateTimeline from "@/components/event-detail/UpdateTimeline";
 import type { EventDetail } from "@/lib/types";
 
-import dynamic from "next/dynamic";
-const EventMap = dynamic(() => import("@/components/event-detail/EventMap"), {
+import dynamicImport from "next/dynamic";
+const EventMap = dynamicImport(() => import("@/components/event-detail/EventMap"), {
   ssr: false,
   loading: () => (
     <div className="w-full h-[400px] bg-[#111] rounded-lg border border-[#1f1f2e] animate-pulse" />
