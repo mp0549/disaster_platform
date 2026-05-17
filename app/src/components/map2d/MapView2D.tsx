@@ -47,7 +47,6 @@ function buildGeoJSON(events: EventSummary[]) {
 }
 
 // Build a MapLibre match expression array from a plain Record
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function matchExpr(property: string, map: Record<string, unknown>, fallback: unknown): any {
   const expr: unknown[] = ["match", ["get", property]];
   for (const [key, value] of Object.entries(map)) {
@@ -159,7 +158,6 @@ export default function MapView2D({ events }: MapView2DProps) {
 
         // Fog for atmospheric depth at the tilted horizon
         try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (map as any).setFog({
             color: "rgb(10, 10, 15)",
             "high-color": "rgb(10, 15, 40)",
@@ -171,7 +169,6 @@ export default function MapView2D({ events }: MapView2DProps) {
 
         // Sky layer — atmosphere glow behind tilted horizon (cast needed: sky type not in MapLibre 4 type definitions)
         try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           map.addLayer({
             id: "sky",
             type: "sky",
@@ -182,7 +179,6 @@ export default function MapView2D({ events }: MapView2DProps) {
               "sky-atmosphere-color": "rgba(20, 40, 80, 0.5)",
               "sky-horizon-blend": 0.4,
             },
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           } as any);
         } catch {}
 
