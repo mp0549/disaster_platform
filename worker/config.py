@@ -12,8 +12,8 @@ class Config:
     NASA_API_KEY: str | None = os.getenv("NASA_API_KEY") or None
     FIRMS_MAP_KEY: str | None = os.getenv("FIRMS_MAP_KEY") or None
 
-    # Worker HTTP port
-    WORKER_PORT: int = int(os.getenv("WORKER_PORT", "8000"))
+    # Worker HTTP port — Railway injects PORT; fall back to WORKER_PORT for local dev
+    WORKER_PORT: int = int(os.getenv("PORT") or os.getenv("WORKER_PORT", "8000"))
 
     @classmethod
     def validate(cls) -> None:
