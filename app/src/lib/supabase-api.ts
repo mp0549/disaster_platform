@@ -1,7 +1,8 @@
 /**
  * Supabase client for use in Next.js API routes.
  * Uses the publishable key + PostgREST — no direct DB connection required.
- * RLS is disabled on all tables so the publishable key has full read access.
+ * RLS is enabled with a `public read` policy on events/event_updates/source_status;
+ * writes are not exposed to this key (the worker writes via direct DB connection).
  */
 import { createClient } from "@supabase/supabase-js";
 
