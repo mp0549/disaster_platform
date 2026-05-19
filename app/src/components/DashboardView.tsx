@@ -39,7 +39,7 @@ const MapView2D = dynamic(() => import("./map2d/MapView2D"), {
 });
 
 export default function DashboardView() {
-  const [view, setView] = useState<"3d" | "2d">("3d");
+  const [view, setView] = useState<"3d" | "2d">("2d");
   const [filters, setFilters] = useState<FilterState>({
     types: [...ALL_DISASTER_TYPES],
     severity: null,

@@ -9,7 +9,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-import geohash
+import pygeohash as geohash
 
 from config import config
 from ingestors.base import BaseIngestor
