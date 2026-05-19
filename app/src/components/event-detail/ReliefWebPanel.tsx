@@ -5,6 +5,9 @@ import { fetchReliefWebReports } from "@/lib/reliefweb";
 import type { ReliefWebReport } from "@/lib/reliefweb";
 import EmptyState from "@/components/ui/EmptyState";
 import Skeleton from "@/components/ui/Skeleton";
+import SectionHeader from "@/components/ui/SectionHeader";
+import Card from "@/components/ui/Card";
+import ExternalLink from "@/components/ui/ExternalLink";
 
 interface ReliefWebPanelProps {
   country: string | null;
@@ -27,14 +30,12 @@ export default function ReliefWebPanel({ country }: ReliefWebPanelProps) {
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-3">
-        <h2 className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#9ca3af]">
-          Humanitarian Reports
-        </h2>
-        <span className="text-[10px] text-[#9ca3af]">via ReliefWeb</span>
-      </div>
+      <SectionHeader
+        title="Humanitarian Reports"
+        rightSlot={<span className="text-[10px] text-light-subtle">via ReliefWeb</span>}
+      />
 
-      <div className="rounded-lg border border-[#e5e5e5] bg-white overflow-hidden">
+      <Card flush>
         {isLoading ? (
           <div className="p-5 space-y-4">
             {[...Array(3)].map((_, i) => (
@@ -56,21 +57,16 @@ export default function ReliefWebPanel({ country }: ReliefWebPanelProps) {
             {reports.map((report, i) => (
               <li
                 key={report.id}
-                className={`stagger-item px-5 py-3.5 hover:bg-[#f9fafb] transition-colors duration-150 ${
-                  i < reports.length - 1 ? "border-b border-[#f0f0f0]" : ""
+                className={`stagger-item px-5 py-3.5 hover:bg-light-hover transition-colors duration-150 ${
+                  i < reports.length - 1 ? "border-b border-light-divider" : ""
                 }`}
               >
-                <a
-                  href={report.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block group"
-                >
-                  <p className="text-[13px] text-[#111827] font-medium leading-snug group-hover:text-[#2563eb] transition-colors duration-150 line-clamp-2">
+                <ExternalLink href={report.url} className="block group">
+                  <p className="text-[13px] text-light-strong font-medium leading-snug group-hover:text-blue-600 transition-colors duration-150 line-clamp-2">
                     {report.title}
                   </p>
                   {report.date && (
-                    <p className="text-[11px] text-[#9ca3af] mt-1">
+                    <p className="text-[11px] text-light-subtle mt-1">
                       {new Date(report.date).toLocaleDateString("en-US", {
                         year: "numeric",
                         month: "short",
@@ -78,12 +74,12 @@ export default function ReliefWebPanel({ country }: ReliefWebPanelProps) {
                       })}
                     </p>
                   )}
-                </a>
+                </ExternalLink>
               </li>
             ))}
           </ul>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

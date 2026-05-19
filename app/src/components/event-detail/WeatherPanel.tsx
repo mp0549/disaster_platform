@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { fetchWeather } from "@/lib/weather";
 import type { WeatherData } from "@/lib/types";
 import Skeleton from "@/components/ui/Skeleton";
+import SectionHeader from "@/components/ui/SectionHeader";
+import Card from "@/components/ui/Card";
 
 interface WeatherPanelProps {
   lat: number;
@@ -36,11 +38,9 @@ export default function WeatherPanel({ lat, lon }: WeatherPanelProps) {
 
   return (
     <div>
-      <h2 className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#9ca3af] mb-3">
-        Current Conditions
-      </h2>
+      <SectionHeader title="Current Conditions" />
 
-      <div className="rounded-lg border border-[#e5e5e5] bg-white p-5">
+      <Card>
         {isLoading ? (
           <div className="grid grid-cols-2 gap-4">
             {[...Array(4)].map((_, i) => (
@@ -55,33 +55,21 @@ export default function WeatherPanel({ lat, lon }: WeatherPanelProps) {
             <div className="flex items-center gap-3 mb-5">
               <span className="text-3xl">{getWeatherEmoji(weather.weatherCode)}</span>
               <div>
-                <p className="text-[13px] font-medium text-[#1f2937]">{weather.weatherLabel}</p>
-                <p className="text-[11px] text-[#6b7280]">At event coordinates</p>
+                <p className="text-[13px] font-medium text-light-text">{weather.weatherLabel}</p>
+                <p className="text-[11px] text-light-muted">At event coordinates</p>
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
-              <WeatherStat
-                label="Temperature"
-                value={`${weather.temperature}°C`}
-                icon="🌡️"
-              />
-              <WeatherStat
-                label="Wind"
-                value={`${weather.windSpeed} km/h`}
-                icon="💨"
-              />
-              <WeatherStat
-                label="Precipitation"
-                value={`${weather.precipitation} mm`}
-                icon="🌧️"
-              />
+              <WeatherStat label="Temperature" value={`${weather.temperature}°C`} icon="🌡️" />
+              <WeatherStat label="Wind" value={`${weather.windSpeed} km/h`} icon="💨" />
+              <WeatherStat label="Precipitation" value={`${weather.precipitation} mm`} icon="🌧️" />
             </div>
           </div>
         ) : (
-          <p className="text-[13px] text-[#6b7280]">Weather data unavailable for this location.</p>
+          <p className="text-[13px] text-light-muted">Weather data unavailable for this location.</p>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
@@ -91,11 +79,11 @@ function WeatherStat({ label, value, icon }: { label: string; value: string; ico
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-1.5">
         <span className="text-sm">{icon}</span>
-        <dt className="text-[10px] font-semibold tracking-[0.08em] uppercase text-[#9ca3af]">
+        <dt className="text-[10px] font-semibold tracking-[0.08em] uppercase text-light-subtle">
           {label}
         </dt>
       </div>
-      <dd className="text-[18px] font-semibold text-[#111827] tabular-nums">{value}</dd>
+      <dd className="text-[18px] font-semibold text-light-strong tabular-nums">{value}</dd>
     </div>
   );
 }

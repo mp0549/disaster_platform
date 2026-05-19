@@ -2,6 +2,7 @@
 
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef } from "react";
+import SectionHeader from "@/components/ui/SectionHeader";
 
 interface EventMapProps {
   lat: number;
@@ -37,18 +38,14 @@ export default function EventMap({ lat, lon, title, geometry }: EventMapProps) {
         attributionControl: true,
       });
 
-      // Dark tile layer (CartoDB Dark Matter)
-      L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-        {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-          subdomains: "abcd",
-          maxZoom: 19,
-          errorTileUrl: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        }
-      ).addTo(map);
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: "abcd",
+        maxZoom: 19,
+        errorTileUrl: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      }).addTo(map);
 
-      // Custom marker
       const customIcon = L.divIcon({
         className: "",
         html: `<div style="
@@ -66,7 +63,6 @@ export default function EventMap({ lat, lon, title, geometry }: EventMapProps) {
         .bindTooltip(title, { permanent: false, direction: "top", offset: [0, -10] })
         .addTo(map);
 
-      // Render geometry overlay if available
       if (geometry) {
         try {
           const geoLayer = L.geoJSON(geometry as GeoJSON.GeoJSON, {
@@ -101,12 +97,10 @@ export default function EventMap({ lat, lon, title, geometry }: EventMapProps) {
 
   return (
     <div>
-      <h2 className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#9ca3af] mb-3">
-        Location
-      </h2>
+      <SectionHeader title="Location" />
       <div
         ref={mapRef}
-        className="w-full rounded-lg overflow-hidden border border-[#e5e5e5]"
+        className="w-full rounded-lg overflow-hidden border border-light-border"
         style={{ height: "400px" }}
         role="img"
         aria-label={`Map showing location of ${title}`}

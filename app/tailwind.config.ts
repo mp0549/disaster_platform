@@ -22,6 +22,28 @@ const config: Config = {
           muted: "#6b7280",
           accent: "#3b82f6",
         },
+        // Light theme (event detail pages)
+        light: {
+          bg: "#fafafa",
+          panel: "#ffffff",
+          border: "#e5e5e5",
+          divider: "#f0f0f0",
+          strong: "#111827",
+          text: "#1f2937",
+          muted: "#6b7280",
+          subtle: "#9ca3af",
+          hover: "#f9fafb",
+        },
+        // Sky tint (AI summary panels + accents)
+        sky: {
+          bg: "#f0f9ff",
+          edge: "#e0f2fe",
+          border: "#bae6fd",
+          accent: "#0ea5e9",
+          text: "#0369a1",
+          strong: "#0c4a6e",
+          faint: "#7dd3fc",
+        },
         // Disaster type colors
         earthquake: "#f97316",
         wildfire: "#ef4444",
