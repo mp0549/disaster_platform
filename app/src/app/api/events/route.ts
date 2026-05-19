@@ -45,14 +45,16 @@ export async function GET(request: NextRequest) {
 
     const { data, error, count: dbCount } = await query;
 
-    console.log("[api/events]", {
-      url: process.env.NEXT_PUBLIC_SUPABASE_URL,
-      keyPrefix: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.slice(0, 24),
-      filters: { typeParam, severityParam, sinceParam, limit },
-      error: error ? { message: error.message, code: error.code, details: error.details } : null,
-      dataLen: data?.length ?? null,
-      dbCount,
-    });
+    if (debug) {
+      console.log("[api/events]", {
+        url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+        keyPrefix: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.slice(0, 24),
+        filters: { typeParam, severityParam, sinceParam, limit },
+        error: error ? { message: error.message, code: error.code, details: error.details } : null,
+        dataLen: data?.length ?? null,
+        dbCount,
+      });
+    }
 
     if (error) throw error;
 
