@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
   const severityParam = searchParams.get("severity");
   const sinceParam = searchParams.get("since");
   const limitParam = searchParams.get("limit");
+  const debug = searchParams.get("debug") === "1";
 
   const limit = Math.min(parseInt(limitParam || "500", 10) || 500, 2000);
 
@@ -17,7 +18,8 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from("events")
       .select(
-        "id, external_id, source, type, title, severity, status, lat, lon, country, started_at, updated_at"
+        "id, external_id, source, type, title, severity, status, lat, lon, country, started_at, updated_at",
+        { count: "exact" }
       )
       .order("started_at", { ascending: false })
       .limit(limit);
@@ -41,7 +43,16 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const { data, error } = await query;
+    const { data, error, count: dbCount } = await query;
+
+    console.log("[api/events]", {
+      url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      keyPrefix: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.slice(0, 24),
+      filters: { typeParam, severityParam, sinceParam, limit },
+      error: error ? { message: error.message, code: error.code, details: error.details } : null,
+      dataLen: data?.length ?? null,
+      dbCount,
+    });
 
     if (error) throw error;
 
@@ -60,9 +71,26 @@ export async function GET(request: NextRequest) {
       updatedAt: e.updated_at,
     }));
 
-    return NextResponse.json({ events, count: events.length });
+    const payload: Record<string, unknown> = { events, count: events.length };
+    if (debug) {
+      payload.debug = {
+        url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+        keyPrefix: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.slice(0, 24),
+        dbCount,
+        dataLen: data?.length ?? null,
+        filters: { typeParam, severityParam, sinceParam, limit },
+      };
+    }
+    return NextResponse.json(payload);
   } catch (error) {
-    console.error("GET /api/events error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    const e = error as { message?: string; code?: string; details?: string };
+    console.error("[api/events] caught error:", e);
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        ...(debug ? { debugError: { message: e?.message, code: e?.code, details: e?.details } } : {}),
+      },
+      { status: 500 }
+    );
   }
 }
