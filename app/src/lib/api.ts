@@ -26,7 +26,9 @@ function buildEventsUrl(filters?: Partial<FilterState>): string {
     params.set("severity", filters.severity);
   }
 
-  if (filters?.timeRange && filters.timeRange !== "all") {
+  if (filters?.timeRange === "live") {
+    params.set("status", "ACTIVE");
+  } else if (filters?.timeRange && filters.timeRange !== "all") {
     const now = new Date();
     const msMap = { "24h": 86400000, "7d": 604800000, "30d": 2592000000 };
     const since = new Date(now.getTime() - msMap[filters.timeRange]);

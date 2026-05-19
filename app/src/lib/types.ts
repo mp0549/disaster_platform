@@ -106,7 +106,7 @@ export interface StatsResponse {
 export interface FilterState {
   types: DisasterType[];
   severity: Severity | null;
-  timeRange: "24h" | "7d" | "30d" | "all";
+  timeRange: "live" | "24h" | "7d" | "30d" | "all";
 }
 
 // Weather (Open-Meteo)

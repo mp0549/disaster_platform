@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
   const typeParam = searchParams.get("type");
   const severityParam = searchParams.get("severity");
   const sinceParam = searchParams.get("since");
+  const statusParam = searchParams.get("status");
   const limitParam = searchParams.get("limit");
   const debug = searchParams.get("debug") === "1";
 
@@ -41,6 +42,10 @@ export async function GET(request: NextRequest) {
       } catch {
         // ignore malformed date
       }
+    }
+
+    if (statusParam) {
+      query = query.eq("status", statusParam.toUpperCase());
     }
 
     const { data, error, count: dbCount } = await query;
