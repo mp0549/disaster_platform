@@ -156,31 +156,24 @@ export default function MapView2D({ events }: MapView2DProps) {
       map.on("load", () => {
         applyDarkTheme(map as unknown as MaplibreMap);
 
-        // Fog for atmospheric depth at the tilted horizon
-        try {
-          (map as any).setFog({
-            color: "rgb(10, 10, 15)",
-            "high-color": "rgb(10, 15, 40)",
-            "horizon-blend": 0.15,
-            "space-color": "rgb(5, 5, 12)",
-            "star-intensity": 0.12,
-          });
-        } catch {}
-
-        // Sky layer — atmosphere glow behind tilted horizon (cast needed: sky type not in MapLibre 4 type definitions)
-        try {
-          map.addLayer({
-            id: "sky",
-            type: "sky",
-            paint: {
-              "sky-type": "atmosphere",
-              "sky-atmosphere-sun": [0.0, 90.0],
-              "sky-atmosphere-sun-intensity": 15,
-              "sky-atmosphere-color": "rgba(20, 40, 80, 0.5)",
-              "sky-horizon-blend": 0.4,
-            },
-          } as any);
-        } catch {}
+        // Atmospheric horizon for the tilted view. MapLibre 5's setSky replaces
+        // Mapbox's setFog and the legacy `type: "sky"` layer (neither exist here).
+        map.setSky({
+          "sky-color": "rgb(8, 12, 30)",
+          "sky-horizon-blend": 0.6,
+          "horizon-color": "rgb(20, 30, 60)",
+          "horizon-fog-blend": 0.5,
+          "fog-color": "rgb(5, 5, 12)",
+          "fog-ground-blend": 0.2,
+          "atmosphere-blend": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            0, 0.8,
+            5, 0.6,
+            10, 0,
+          ],
+        });
 
         // GeoJSON source (starts empty; populated immediately below)
         map.addSource("events", {
