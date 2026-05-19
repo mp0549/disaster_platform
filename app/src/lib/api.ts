@@ -12,7 +12,8 @@ import type {
   FilterState,
 } from "./types";
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL || "";
+// All API calls are relative — the browser hits whichever origin served the page,
+// so this works on production, preview deployments, and any custom domain alike.
 
 function buildEventsUrl(filters?: Partial<FilterState>): string {
   const params = new URLSearchParams();
@@ -33,7 +34,7 @@ function buildEventsUrl(filters?: Partial<FilterState>): string {
   }
 
   const query = params.toString();
-  return `${BASE}/api/events${query ? `?${query}` : ""}`;
+  return `/api/events${query ? `?${query}` : ""}`;
 }
 
 export async function fetchEvents(
@@ -46,20 +47,20 @@ export async function fetchEvents(
 }
 
 export async function fetchEventDetail(id: string): Promise<EventDetailResponse> {
-  const res = await fetch(`${BASE}/api/events/${id}`, { cache: "no-store" });
+  const res = await fetch(`/api/events/${id}`, { cache: "no-store" });
   if (res.status === 404) throw new Error("Event not found");
   if (!res.ok) throw new Error(`Failed to fetch event: ${res.status}`);
   return res.json();
 }
 
 export async function fetchEventUpdates(id: string): Promise<EventUpdatesResponse> {
-  const res = await fetch(`${BASE}/api/events/${id}/updates`, { cache: "no-store" });
+  const res = await fetch(`/api/events/${id}/updates`, { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to fetch updates: ${res.status}`);
   return res.json();
 }
 
 export async function triggerSummarize(id: string): Promise<SummarizeResponse> {
-  const res = await fetch(`${BASE}/api/events/${id}/summarize`, {
+  const res = await fetch(`/api/events/${id}/summarize`, {
     method: "POST",
     cache: "no-store",
   });
@@ -68,13 +69,13 @@ export async function triggerSummarize(id: string): Promise<SummarizeResponse> {
 }
 
 export async function fetchSources(): Promise<SourcesResponse> {
-  const res = await fetch(`${BASE}/api/sources`, { cache: "no-store" });
+  const res = await fetch(`/api/sources`, { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to fetch sources: ${res.status}`);
   return res.json();
 }
 
 export async function fetchStats(): Promise<StatsResponse> {
-  const res = await fetch(`${BASE}/api/stats`, { cache: "no-store" });
+  const res = await fetch(`/api/stats`, { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to fetch stats: ${res.status}`);
   return res.json();
 }
