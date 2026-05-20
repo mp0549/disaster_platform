@@ -105,7 +105,7 @@ Conventions:
 ### Components: 2D map (MapLibre GL)
 - `app/src/components/map2d/MapView2D.tsx` — orchestrator: map init, sky setup, popup wiring, click → router push, pulse rAF, data sync.
 - `app/src/components/map2d/darkTheme.ts` — `applyDarkTheme()` — heuristic re-color of the OpenFreeMap style.
-- `app/src/components/map2d/layers.ts` — `buildGeoJSON`, `setupEventLayers({clustering})` (returns handle with `remove()`; adds source + cluster/halo/pulse/main layers and binds cluster click), `buildPopupHTML`, `SEVERITY_RADII`.
+- `app/src/components/map2d/layers.ts` — `buildGeoJSON` / `buildZonesGeoJSON`, `setupEventLayers({clustering})` (returns handle with `remove()`; adds source + cluster/halo/pulse/main layers and binds cluster click), `setupZoneLayers({visible})` (fill + line polygon layers under the points; handle exposes `setVisible`/`setData`/`remove`), `buildPopupHTML`, `SEVERITY_RADII`.
 - `app/src/components/map2d/mapStyle.ts` — OpenFreeMap style URL + initial view.
 
 ### Global styles

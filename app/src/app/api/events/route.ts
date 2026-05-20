@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from("events")
       .select(
-        "id, external_id, source, type, title, severity, status, lat, lon, country, started_at, updated_at",
+        "id, external_id, source, type, title, severity, status, lat, lon, country, started_at, updated_at, geometry",
         { count: "exact" }
       )
       .order("started_at", { ascending: false })
@@ -76,6 +76,7 @@ export async function GET(request: NextRequest) {
       country: e.country,
       startedAt: e.started_at,
       updatedAt: e.updated_at,
+      geometry: e.geometry ?? null,
     }));
 
     const payload: Record<string, unknown> = { events, count: events.length };

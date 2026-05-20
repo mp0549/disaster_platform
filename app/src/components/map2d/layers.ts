@@ -207,6 +207,102 @@ export function setupEventLayers(
   };
 }
 
+// ─── Zones (affected-area polygons) ─────────────────────────────────────────
+
+function isPolygonalGeometry(g: GeoJSON.Geometry | null | undefined): g is GeoJSON.Polygon | GeoJSON.MultiPolygon {
+  return !!g && (g.type === "Polygon" || g.type === "MultiPolygon");
+}
+
+export function buildZonesGeoJSON(events: EventSummary[]) {
+  return {
+    type: "FeatureCollection" as const,
+    features: events
+      .filter((e) => isPolygonalGeometry(e.geometry ?? null))
+      .map((e) => ({
+        type: "Feature" as const,
+        geometry: e.geometry as GeoJSON.Polygon | GeoJSON.MultiPolygon,
+        properties: {
+          id: e.id,
+          type: e.type,
+          severity: e.severity ?? "MODERATE",
+          title: e.title,
+        },
+      })),
+  };
+}
+
+export interface ZoneLayersHandle {
+  setVisible: (visible: boolean) => void;
+  setData: (events: EventSummary[]) => void;
+  remove: () => void;
+}
+
+/**
+ * Add a separate source + fill/line layers for events with polygon geometry.
+ * Placed below the point layers so markers still sit on top. Visibility is
+ * toggled via `setVisible(boolean)` — no rebuild needed.
+ */
+export function setupZoneLayers(map: MaplibreMap, options: { visible: boolean }): ZoneLayersHandle {
+  map.addSource("events-zones", {
+    type: "geojson",
+    data: { type: "FeatureCollection", features: [] },
+  });
+
+  const initialVisibility = options.visible ? "visible" : "none";
+
+  // Find the first event point layer to insert zones beneath it
+  const beforeId = ["events-halo", "events-clusters", "events-main"].find((id) => map.getLayer(id));
+
+  map.addLayer(
+    {
+      id: "events-zones-fill",
+      type: "fill",
+      source: "events-zones",
+      layout: { visibility: initialVisibility },
+      paint: {
+        "fill-color": matchExpr("type", TYPE_COLORS, "#6b7280") as never,
+        "fill-opacity": 0.14,
+      },
+    },
+    beforeId
+  );
+
+  map.addLayer(
+    {
+      id: "events-zones-line",
+      type: "line",
+      source: "events-zones",
+      layout: { visibility: initialVisibility, "line-join": "round", "line-cap": "round" },
+      paint: {
+        "line-color": matchExpr("type", TYPE_COLORS, "#9ca3af") as never,
+        "line-width": 1,
+        "line-opacity": 0.55,
+      },
+    },
+    beforeId
+  );
+
+  return {
+    setVisible: (visible: boolean) => {
+      const v = visible ? "visible" : "none";
+      if (map.getLayer("events-zones-fill")) map.setLayoutProperty("events-zones-fill", "visibility", v);
+      if (map.getLayer("events-zones-line")) map.setLayoutProperty("events-zones-line", "visibility", v);
+    },
+    setData: (events: EventSummary[]) => {
+      const src = map.getSource("events-zones") as GeoJSONSource | undefined;
+      if (src) src.setData(buildZonesGeoJSON(events));
+    },
+    remove: () => {
+      for (const id of ["events-zones-line", "events-zones-fill"]) {
+        if (map.getLayer(id)) map.removeLayer(id);
+      }
+      if (map.getSource("events-zones")) map.removeSource("events-zones");
+    },
+  };
+}
+
+// ─── Popup ──────────────────────────────────────────────────────────────────
+
 interface PopupProps {
   type: string;
   severity: string;

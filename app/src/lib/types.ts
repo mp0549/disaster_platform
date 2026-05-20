@@ -30,6 +30,12 @@ export interface EventSummary {
   country: string | null;
   startedAt: string;
   updatedAt: string;
+  /**
+   * Affected-area polygon (when the upstream source provides one — NOAA alerts
+   * and many GDACS storms; null for USGS, FEMA, FIRMS, ReliefWeb). Used by the
+   * 2D map's zone overlay.
+   */
+  geometry?: GeoJSON.Geometry | null;
 }
 
 export interface EventDetail {

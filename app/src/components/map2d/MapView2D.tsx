@@ -6,7 +6,15 @@ import type { Map as MaplibreMap, GeoJSONSource } from "maplibre-gl";
 import type { EventSummary, MapSettings } from "@/lib/types";
 import { INITIAL_VIEW, OPENFREEMAP_STYLE_URL } from "./mapStyle";
 import { applyDarkTheme } from "./darkTheme";
-import { buildGeoJSON, setupEventLayers, buildPopupHTML, type EventLayersHandle } from "./layers";
+import {
+  buildGeoJSON,
+  buildZonesGeoJSON,
+  setupEventLayers,
+  setupZoneLayers,
+  buildPopupHTML,
+  type EventLayersHandle,
+  type ZoneLayersHandle,
+} from "./layers";
 
 // CSS import lives here so it only loads when this component is actually used
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -23,6 +31,7 @@ export default function MapView2D({ events, settings }: MapView2DProps) {
   const pulseRafRef = useRef<number>(0);
   const eventsRef = useRef(events);
   const layersHandleRef = useRef<EventLayersHandle | null>(null);
+  const zonesHandleRef = useRef<ZoneLayersHandle | null>(null);
   const router = useRouter();
 
   // Keep eventsRef current so closures use the latest data
@@ -72,11 +81,15 @@ export default function MapView2D({ events, settings }: MapView2DProps) {
         layersHandleRef.current = setupEventLayers(map as unknown as MaplibreMap, {
           clustering: settings.clustering,
         });
+        zonesHandleRef.current = setupZoneLayers(map as unknown as MaplibreMap, {
+          visible: settings.zones,
+        });
         isLoadedRef.current = true;
 
         // Populate with current events
         const source = map.getSource("events") as GeoJSONSource;
         if (source) source.setData(buildGeoJSON(eventsRef.current));
+        zonesHandleRef.current?.setData(eventsRef.current);
 
         // Pulse animation — sine-driven radius on EXTREME ring
         let pulseT = 0;
@@ -137,6 +150,7 @@ export default function MapView2D({ events, settings }: MapView2DProps) {
         cancelAnimationFrame(pulseRafRef.current);
         isLoadedRef.current = false;
         layersHandleRef.current = null;
+        zonesHandleRef.current = null;
         map.remove();
         mapRef.current = null;
       };
@@ -161,12 +175,18 @@ export default function MapView2D({ events, settings }: MapView2DProps) {
     if (source) source.setData(buildGeoJSON(eventsRef.current));
   }, [settings.clustering]);
 
-  // Sync events data whenever the filtered set changes
+  // Cheap visibility toggle for zone layers — no rebuild
+  useEffect(() => {
+    zonesHandleRef.current?.setVisible(settings.zones);
+  }, [settings.zones]);
+
+  // Sync events data whenever the filtered set changes (both points + zones)
   useEffect(() => {
     if (!mapRef.current || !isLoadedRef.current) return;
     const source = mapRef.current.getSource("events") as GeoJSONSource;
     if (source) source.setData(geoJSON);
-  }, [geoJSON]);
+    zonesHandleRef.current?.setData(events);
+  }, [geoJSON, events]);
 
   return <div ref={containerRef} className="w-full h-full bg-dark-bg" />;
 }
