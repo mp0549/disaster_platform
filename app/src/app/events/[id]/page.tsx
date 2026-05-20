@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { supabase } from "@/lib/supabase-api";
+import { DOMAIN_RAMPS, TYPE_TO_DOMAIN } from "@/lib/constants";
 import Header from "@/components/layout/Header";
 import EventHeader from "@/components/event-detail/EventHeader";
 import MetadataGrid from "@/components/event-detail/MetadataGrid";
@@ -96,6 +97,9 @@ export default async function EventPage({ params }: EventPageProps) {
     aiSummaryGeneratedAt: raw.ai_summary_generated_at ?? null,
   };
 
+  const domain = TYPE_TO_DOMAIN[event.type] ?? "infra";
+  const domainColor = DOMAIN_RAMPS[domain][400];
+
   return (
     <div className="event-page">
       <Header />
@@ -103,30 +107,36 @@ export default async function EventPage({ params }: EventPageProps) {
       <main className="pt-16 pb-24">
         <div className="max-w-[1080px] mx-auto px-6">
           <div className="mt-8 flex flex-col gap-10">
-            <EventHeader event={event} />
+            <div className="panel-reveal" style={{ animationDelay: "0ms" }}>
+              <EventHeader event={event} />
+            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="panel-reveal" style={{ animationDelay: "60ms" }}>
+              <AISummary
+                eventId={event.id}
+                initialSummary={event.aiSummary}
+                initialGeneratedAt={event.aiSummaryGeneratedAt}
+              />
+            </div>
+
+            <div className="panel-reveal grid grid-cols-1 lg:grid-cols-2 gap-8" style={{ animationDelay: "120ms" }}>
               <EventMap
                 lat={event.lat}
                 lon={event.lon}
                 title={event.title}
                 geometry={event.geometry}
               />
-              <MetadataGrid event={event} />
+              <MetadataGrid event={event} accentColor={domainColor} />
             </div>
 
-            <AISummary
-              eventId={event.id}
-              initialSummary={event.aiSummary}
-              initialGeneratedAt={event.aiSummaryGeneratedAt}
-            />
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <WeatherPanel lat={event.lat} lon={event.lon} />
-              <ReliefWebPanel country={event.country} />
+            <div className="panel-reveal grid grid-cols-1 lg:grid-cols-2 gap-8" style={{ animationDelay: "180ms" }}>
+              <WeatherPanel lat={event.lat} lon={event.lon} accentColor={domainColor} />
+              <ReliefWebPanel country={event.country} accentColor={domainColor} />
             </div>
 
-            <UpdateTimeline eventId={event.id} />
+            <div className="panel-reveal" style={{ animationDelay: "240ms" }}>
+              <UpdateTimeline eventId={event.id} accentColor={domainColor} />
+            </div>
           </div>
         </div>
       </main>

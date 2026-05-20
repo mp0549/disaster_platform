@@ -10,6 +10,68 @@
 
   --font-inter: "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  /* ── Light theme color variables (space-separated RGB for Tailwind alpha support) ── */
+  --light-bg:      254 252 248;   /* #FEFCF8 */
+  --light-panel:   255 255 255;   /* #ffffff */
+  --light-border:  229 229 229;   /* #e5e5e5 */
+  --light-divider: 240 240 240;   /* #f0f0f0 */
+  --light-strong:  17 24 39;      /* #111827 */
+  --light-text:    31 41 55;      /* #1f2937 */
+  --light-muted:   107 114 128;   /* #6b7280 */
+  --light-subtle:  156 163 175;   /* #9ca3af */
+  --light-hover:   249 250 251;   /* #f9fafb */
+
+  /* ── Sky (AI panel) variables ── */
+  --sky-bg:     240 249 255;  /* #f0f9ff */
+  --sky-edge:   224 242 254;  /* #e0f2fe */
+  --sky-border: 186 230 253;  /* #bae6fd */
+  --sky-accent: 14 165 233;   /* #0ea5e9 */
+  --sky-text:   3 105 161;    /* #0369a1 */
+  --sky-strong: 12 74 110;    /* #0c4a6e */
+  --sky-faint:  125 211 252;  /* #7dd3fc */
+}
+
+/* ── Dark mode overrides — system preference ── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-event-theme="light"]) {
+    --light-bg:      15 15 15;      /* #0f0f0f */
+    --light-panel:   25 25 25;      /* #191919 */
+    --light-border:  48 48 48;      /* #303030 */
+    --light-divider: 35 35 35;      /* #232323 */
+    --light-strong:  244 244 245;   /* #f4f4f5 */
+    --light-text:    212 212 216;   /* #d4d4d8 */
+    --light-muted:   161 161 170;   /* #a1a1aa */
+    --light-subtle:  113 113 122;   /* #71717a */
+    --light-hover:   39 39 42;      /* #27272a */
+    --sky-bg:     8 20 40;          /* #081428 */
+    --sky-edge:   14 31 60;         /* #0e1f3c */
+    --sky-border: 30 58 138;        /* #1e3a8a */
+    --sky-accent: 56 189 248;       /* #38bdf8 */
+    --sky-text:   125 211 252;      /* #7dd3fc */
+    --sky-strong: 224 242 254;      /* #e0f2fe */
+    --sky-faint:  56 189 248;       /* #38bdf8 */
+  }
+}
+
+/* ── Manual dark toggle ── */
+[data-event-theme="dark"] {
+  --light-bg:      15 15 15;
+  --light-panel:   25 25 25;
+  --light-border:  48 48 48;
+  --light-divider: 35 35 35;
+  --light-strong:  244 244 245;
+  --light-text:    212 212 216;
+  --light-muted:   161 161 170;
+  --light-subtle:  113 113 122;
+  --light-hover:   39 39 42;
+  --sky-bg:     8 20 40;
+  --sky-edge:   14 31 60;
+  --sky-border: 30 58 138;
+  --sky-accent: 56 189 248;
+  --sky-text:   125 211 252;
+  --sky-strong: 224 242 254;
+  --sky-faint:  56 189 248;
 }
 
 /* Dark base */
@@ -116,18 +178,34 @@ body {
   transform: scale(0.97);
 }
 
-/* Badge base styles */
+/* Badge base styles — pill shape */
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   white-space: nowrap;
+}
+
+/* Panel reveal — staggered cascade on event detail page */
+.panel-reveal {
+  animation: panelReveal 400ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+@keyframes panelReveal {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes countPop {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.18); }
+  100% { transform: scale(1); }
 }
 
 /* Stagger animation for list items */
@@ -179,10 +257,10 @@ body {
   color: #4b83c0 !important;
 }
 
-/* Event detail page — light theme */
+/* Event detail page — theme-responsive */
 .event-page {
-  background: #fafafa;
-  color: #171717;
+  background: rgb(var(--light-bg));
+  color: rgb(var(--light-strong));
   min-height: 100vh;
 }
 
@@ -253,7 +331,7 @@ body {
 }
 
 .maplibregl-ctrl-group button:hover {
-  background-color: rgba(59, 130, 246, 0.12) !important;
+  background-color: rgba(239, 159, 39, 0.12) !important;
 }
 
 /* Zoom icon tint */
@@ -282,6 +360,16 @@ body {
 
 .maplibregl-ctrl-attrib-button {
   filter: invert(0.5);
+}
+
+/* Popup entrance animation */
+.maplibregl-popup {
+  animation: popupIn 150ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@keyframes popupIn {
+  from { opacity: 0; transform: translateY(5px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* Popup container */

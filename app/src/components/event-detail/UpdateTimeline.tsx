@@ -10,9 +10,10 @@ import Card from "@/components/ui/Card";
 
 interface UpdateTimelineProps {
   eventId: string;
+  accentColor?: string;
 }
 
-export default function UpdateTimeline({ eventId }: UpdateTimelineProps) {
+export default function UpdateTimeline({ eventId, accentColor }: UpdateTimelineProps) {
   const [updates, setUpdates] = useState<EventUpdate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -42,6 +43,7 @@ export default function UpdateTimeline({ eventId }: UpdateTimelineProps) {
     <div>
       <SectionHeader
         title="Change History"
+        accent={accentColor}
         rightSlot={countLabel ? <span className="text-[11px] text-light-subtle">{countLabel}</span> : undefined}
       />
 
@@ -74,7 +76,7 @@ export default function UpdateTimeline({ eventId }: UpdateTimelineProps) {
                   <div className="flex items-start gap-3">
                     {/* Timeline dot */}
                     <div className="relative flex flex-col items-center shrink-0 mt-0.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-dark-accent ring-2 ring-white ring-offset-1" />
+                      <div className="w-2.5 h-2.5 rounded-full ring-2 ring-white ring-offset-1" style={{ backgroundColor: "#EF9F27" }} />
                       {i < updates.length - 1 && (
                         <div className="w-px h-full min-h-[20px] bg-light-border mt-1" />
                       )}
@@ -95,7 +97,7 @@ export default function UpdateTimeline({ eventId }: UpdateTimelineProps) {
                         {update.changedFields.map((field) => (
                           <span
                             key={field}
-                            className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-sky-bg text-sky-text border border-sky-border"
+                            className="px-1.5 py-0.5 rounded text-[11px] font-mono font-medium bg-[#FAEEDA] text-[#BA7517] border border-[#EF9F27]/25"
                           >
                             {field}
                           </span>
@@ -109,13 +111,16 @@ export default function UpdateTimeline({ eventId }: UpdateTimelineProps) {
                         {isExpanded ? "Hide snapshot ↑" : "View snapshot →"}
                       </button>
 
-                      {isExpanded && (
+                      <div
+                        className="overflow-hidden transition-all duration-300 ease-out"
+                        style={{ maxHeight: isExpanded ? "400px" : "0" }}
+                      >
                         <div className="mt-2 p-3 rounded bg-light-hover border border-light-border overflow-x-auto">
                           <pre className="text-[11px] text-light-text font-mono whitespace-pre-wrap break-all">
                             {JSON.stringify(update.snapshot, null, 2)}
                           </pre>
                         </div>
-                      )}
+                      </div>
                     </div>
                   </div>
                 </div>

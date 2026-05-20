@@ -12,18 +12,15 @@ interface AISummaryProps {
   initialGeneratedAt?: string | null;
 }
 
-function AIBadge() {
+function SparkleIcon() {
   return (
-    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-bg border border-sky-border">
-      <svg viewBox="0 0 16 16" fill="none" className="w-3 h-3">
+    <div className="flex items-center px-1.5 py-0.5 rounded bg-sky-bg border border-sky-border">
+      <svg viewBox="0 0 12 12" fill="none" className="w-3 h-3">
         <path
-          d="M8 2L9.5 6.5H14L10.5 9L11.5 13.5L8 11L4.5 13.5L5.5 9L2 6.5H6.5L8 2Z"
+          d="M6 1 L7.5 5 L11 6 L7.5 7 L6 11 L4.5 7 L1 6 L4.5 5 Z"
           fill="#0ea5e9"
-          stroke="#0ea5e9"
-          strokeWidth="0.5"
         />
       </svg>
-      <span className="text-[9px] font-semibold tracking-wider text-sky-text uppercase">AI</span>
     </div>
   );
 }
@@ -61,19 +58,17 @@ export default function AISummary({ eventId, initialSummary, initialGeneratedAt 
     };
   }, [eventId, initialSummary]);
 
+  const isStale = generatedAt
+    ? Date.now() - new Date(generatedAt).getTime() > 24 * 60 * 60 * 1000
+    : false;
+
   return (
     <div>
-      <SectionHeader title="Situation Analysis" rightSlot={<AIBadge />} />
+      <SectionHeader title="Situation Analysis" rightSlot={<SparkleIcon />} />
 
       <Card tint="sky">
         {isLoading ? (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-4 h-4 border-2 border-sky-accent border-t-transparent rounded-full animate-spin" />
-              <span className="text-[12px] text-sky-text">Generating situation analysis...</span>
-            </div>
-            <SkeletonText lines={3} light />
-          </div>
+          <SkeletonText lines={3} light />
         ) : error ? (
           <p className="text-[13px] text-light-muted italic">
             Analysis unavailable. The AI service may be temporarily unreachable.
@@ -85,6 +80,12 @@ export default function AISummary({ eventId, initialSummary, initialGeneratedAt 
               <p className="text-[10px] text-sky-faint mt-3">
                 Generated {new Date(generatedAt).toLocaleString()}
               </p>
+            )}
+            {isStale && (
+              <div className="flex items-center gap-1.5 mt-2">
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: "#EF9F27" }} />
+                <span className="text-[11px]" style={{ color: "#BA7517" }}>Summary may be outdated</span>
+              </div>
             )}
           </div>
         ) : null}

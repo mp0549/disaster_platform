@@ -22,29 +22,29 @@ const config: Config = {
           muted: "#6b7280",
           accent: "#3b82f6",
         },
-        // Light theme (event detail pages)
+        // Light theme (event detail pages) — values via CSS custom properties so dark mode flips automatically
         light: {
-          bg: "#fafafa",
-          panel: "#ffffff",
-          border: "#e5e5e5",
-          divider: "#f0f0f0",
-          strong: "#111827",
-          text: "#1f2937",
-          muted: "#6b7280",
-          subtle: "#9ca3af",
-          hover: "#f9fafb",
+          bg:      "rgb(var(--light-bg)      / <alpha-value>)",
+          panel:   "rgb(var(--light-panel)   / <alpha-value>)",
+          border:  "rgb(var(--light-border)  / <alpha-value>)",
+          divider: "rgb(var(--light-divider) / <alpha-value>)",
+          strong:  "rgb(var(--light-strong)  / <alpha-value>)",
+          text:    "rgb(var(--light-text)    / <alpha-value>)",
+          muted:   "rgb(var(--light-muted)   / <alpha-value>)",
+          subtle:  "rgb(var(--light-subtle)  / <alpha-value>)",
+          hover:   "rgb(var(--light-hover)   / <alpha-value>)",
         },
-        // Sky tint (AI summary panels + accents)
+        // Sky tint (AI summary panels + accents) — also theme-responsive
         sky: {
-          bg: "#f0f9ff",
-          edge: "#e0f2fe",
-          border: "#bae6fd",
-          accent: "#0ea5e9",
-          text: "#0369a1",
-          strong: "#0c4a6e",
-          faint: "#7dd3fc",
+          bg:     "rgb(var(--sky-bg)     / <alpha-value>)",
+          edge:   "rgb(var(--sky-edge)   / <alpha-value>)",
+          border: "rgb(var(--sky-border) / <alpha-value>)",
+          accent: "rgb(var(--sky-accent) / <alpha-value>)",
+          text:   "rgb(var(--sky-text)   / <alpha-value>)",
+          strong: "rgb(var(--sky-strong) / <alpha-value>)",
+          faint:  "rgb(var(--sky-faint)  / <alpha-value>)",
         },
-        // Disaster type colors
+        // Disaster type colors (map markers / StatsBar dots)
         earthquake: "#f97316",
         wildfire: "#ef4444",
         flood: "#3b82f6",
@@ -52,6 +52,15 @@ const config: Config = {
         volcano: "#f59e0b",
         drought: "#a16207",
         other: "#6b7280",
+        // GRIP domain ramps (50=light-fill / 400=mid-globe / 600=dark-border / 800=text-on-light)
+        grip: {
+          natural:      { 50: "#FAEEDA", 400: "#EF9F27", 600: "#BA7517", 800: "#633806" },
+          biological:   { 50: "#EAF3DE", 400: "#97C459", 600: "#3B6D11", 800: "#173404" },
+          tech:         { 50: "#FAECE7", 400: "#F0997B", 600: "#993C1D", 800: "#4A1B0C" },
+          geo:          { 50: "#EEEDFE", 400: "#AFA9EC", 600: "#534AB7", 800: "#26215C" },
+          cyber:        { 50: "#E1F5EE", 400: "#5DCAA5", 600: "#0F6E56", 800: "#04342C" },
+          infra:        { 50: "#E6F1FB", 400: "#85B7EB", 600: "#185FA5", 800: "#042C53" },
+        },
       },
       letterSpacing: {
         widest: "0.2em",
