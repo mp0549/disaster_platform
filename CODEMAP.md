@@ -69,10 +69,11 @@ Conventions:
 - `app/src/components/ErrorBoundary.tsx` — class-based boundary with reset; used to isolate Globe/Map crashes.
 
 ### Components: filters
-- `app/src/components/filters/FilterPanel.tsx` — sidebar wrapper; composes the three filter widgets.
+- `app/src/components/filters/FilterPanel.tsx` — sidebar wrapper; composes the filter widgets + AdvancedSettings.
 - `app/src/components/filters/TypeFilter.tsx` — checkbox grid for disaster types.
 - `app/src/components/filters/SeverityFilter.tsx` — radio buttons for severity.
 - `app/src/components/filters/TimeRangeFilter.tsx` — pills: LIVE / 24h / 7d / 30d / all.
+- `app/src/components/filters/AdvancedSettings.tsx` — collapsible "Display" section with toggles for clustering + zones (drives `MapSettings`).
 
 ### Components: UI primitives (`app/src/components/ui/`)
 - `Badge.tsx` — `TypeBadge`, `SeverityBadge`, `StatusBadge`, `SourceBadge`. Style-from-data badges keyed on enums.
@@ -82,6 +83,7 @@ Conventions:
 - `SectionHeader.tsx` — the `text-[11px] uppercase tracking-wide` section heading; optional `rightSlot` for badges/counts, optional `id` for aria-labelledby.
 - `Skeleton.tsx` — `Skeleton` + `SkeletonText`. Shimmer placeholders.
 - `Spinner.tsx` — circular loading indicator (sm/md/lg).
+- `Toggle.tsx` — dark-theme switch (label + optional description). Used by AdvancedSettings.
 
 ### Components: event detail
 - `app/src/components/event-detail/EventHeader.tsx` — title + badges + back link (light theme).
@@ -103,7 +105,7 @@ Conventions:
 ### Components: 2D map (MapLibre GL)
 - `app/src/components/map2d/MapView2D.tsx` — orchestrator: map init, sky setup, popup wiring, click → router push, pulse rAF, data sync.
 - `app/src/components/map2d/darkTheme.ts` — `applyDarkTheme()` — heuristic re-color of the OpenFreeMap style.
-- `app/src/components/map2d/layers.ts` — `buildGeoJSON`, `addEventLayers` (halo + pulse + main), `buildPopupHTML`, `SEVERITY_RADII`.
+- `app/src/components/map2d/layers.ts` — `buildGeoJSON`, `setupEventLayers({clustering})` (returns handle with `remove()`; adds source + cluster/halo/pulse/main layers and binds cluster click), `buildPopupHTML`, `SEVERITY_RADII`.
 - `app/src/components/map2d/mapStyle.ts` — OpenFreeMap style URL + initial view.
 
 ### Global styles

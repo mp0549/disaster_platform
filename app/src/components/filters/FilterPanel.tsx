@@ -3,15 +3,24 @@
 import TypeFilter from "./TypeFilter";
 import SeverityFilter from "./SeverityFilter";
 import TimeRangeFilter from "./TimeRangeFilter";
-import type { FilterState } from "@/lib/types";
+import AdvancedSettings from "./AdvancedSettings";
+import type { FilterState, MapSettings } from "@/lib/types";
 
 interface FilterPanelProps {
   filters: FilterState;
   onChange: (filters: FilterState) => void;
   eventCount: number;
+  mapSettings: MapSettings;
+  onMapSettingsChange: (next: MapSettings) => void;
 }
 
-export default function FilterPanel({ filters, onChange, eventCount }: FilterPanelProps) {
+export default function FilterPanel({
+  filters,
+  onChange,
+  eventCount,
+  mapSettings,
+  onMapSettingsChange,
+}: FilterPanelProps) {
   return (
     <div
       className="glass absolute left-0 top-0 bottom-0 z-30 w-[260px] flex flex-col overflow-y-auto"
@@ -20,7 +29,7 @@ export default function FilterPanel({ filters, onChange, eventCount }: FilterPan
       {/* Panel header */}
       <div className="px-5 pb-4 border-b border-white/5">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold tracking-[0.12em] text-[#e5e5e5] uppercase">
+          <span className="text-[11px] font-bold tracking-[0.12em] text-dark-text uppercase">
             Filters
           </span>
           <span className="label-mono">
@@ -49,6 +58,10 @@ export default function FilterPanel({ filters, onChange, eventCount }: FilterPan
           selected={filters.severity}
           onChange={(severity) => onChange({ ...filters, severity })}
         />
+
+        <div className="w-full h-px bg-white/5" />
+
+        <AdvancedSettings settings={mapSettings} onChange={onMapSettingsChange} />
       </div>
 
       {/* Footer — data source attribution */}

@@ -3,27 +3,29 @@
 import { useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import type { Map as MaplibreMap, GeoJSONSource } from "maplibre-gl";
-import type { EventSummary } from "@/lib/types";
+import type { EventSummary, MapSettings } from "@/lib/types";
 import { INITIAL_VIEW, OPENFREEMAP_STYLE_URL } from "./mapStyle";
 import { applyDarkTheme } from "./darkTheme";
-import { buildGeoJSON, addEventLayers, buildPopupHTML } from "./layers";
+import { buildGeoJSON, setupEventLayers, buildPopupHTML, type EventLayersHandle } from "./layers";
 
 // CSS import lives here so it only loads when this component is actually used
 import "maplibre-gl/dist/maplibre-gl.css";
 
 interface MapView2DProps {
   events: EventSummary[];
+  settings: MapSettings;
 }
 
-export default function MapView2D({ events }: MapView2DProps) {
+export default function MapView2D({ events, settings }: MapView2DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MaplibreMap | null>(null);
   const isLoadedRef = useRef(false);
   const pulseRafRef = useRef<number>(0);
   const eventsRef = useRef(events);
+  const layersHandleRef = useRef<EventLayersHandle | null>(null);
   const router = useRouter();
 
-  // Keep eventsRef current so the style.load closure uses latest data
+  // Keep eventsRef current so closures use the latest data
   eventsRef.current = events;
 
   const geoJSON = useMemo(() => buildGeoJSON(events), [events]);
@@ -64,17 +66,12 @@ export default function MapView2D({ events }: MapView2DProps) {
           "horizon-fog-blend": 0.5,
           "fog-color": "rgb(5, 5, 12)",
           "fog-ground-blend": 0.2,
-          "atmosphere-blend": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            0, 0.8,
-            5, 0.6,
-            10, 0,
-          ],
+          "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 0, 0.8, 5, 0.6, 10, 0],
         });
 
-        addEventLayers(map as unknown as MaplibreMap);
+        layersHandleRef.current = setupEventLayers(map as unknown as MaplibreMap, {
+          clustering: settings.clustering,
+        });
         isLoadedRef.current = true;
 
         // Populate with current events
@@ -95,7 +92,8 @@ export default function MapView2D({ events }: MapView2DProps) {
         }
         animatePulse();
 
-        // Click → event detail page
+        // Click → event detail page. Bound to layer id, persists across layer
+        // recreations (we re-add the same id when toggling clustering).
         map.on("click", "events-main", (e) => {
           const feature = e.features?.[0];
           const id = feature?.properties?.id as string | undefined;
@@ -114,10 +112,8 @@ export default function MapView2D({ events }: MapView2DProps) {
           map.getCanvas().style.cursor = "pointer";
           const feature = e.features?.[0];
           if (!feature) return;
-
           const props = feature.properties ?? {};
           const coords = (feature.geometry as GeoJSON.Point).coordinates as [number, number];
-
           popup
             .setLngLat(coords)
             .setHTML(
@@ -140,6 +136,7 @@ export default function MapView2D({ events }: MapView2DProps) {
       localCleanup = () => {
         cancelAnimationFrame(pulseRafRef.current);
         isLoadedRef.current = false;
+        layersHandleRef.current = null;
         map.remove();
         mapRef.current = null;
       };
@@ -149,6 +146,20 @@ export default function MapView2D({ events }: MapView2DProps) {
 
     return () => localCleanup?.();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Rebuild source + layers when clustering toggles. The events click handler is
+  // bound to the layer id and persists; only the cluster-specific handlers in
+  // setupEventLayers get re-registered.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isLoadedRef.current || !layersHandleRef.current) return;
+
+    layersHandleRef.current.remove();
+    layersHandleRef.current = setupEventLayers(map, { clustering: settings.clustering });
+
+    const source = map.getSource("events") as GeoJSONSource;
+    if (source) source.setData(buildGeoJSON(eventsRef.current));
+  }, [settings.clustering]);
 
   // Sync events data whenever the filtered set changes
   useEffect(() => {

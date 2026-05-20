@@ -109,6 +109,21 @@ export interface FilterState {
   timeRange: "live" | "24h" | "7d" | "30d" | "all";
 }
 
+// Map rendering settings (separate from filters — these don't affect which
+// events come back from the API, only how they're drawn).
+
+export interface MapSettings {
+  /** Group nearby points into cluster bubbles at low zoom levels. */
+  clustering: boolean;
+  /** Render the event's `geometry` polygon as a shaded zone (when available). */
+  zones: boolean;
+}
+
+export const DEFAULT_MAP_SETTINGS: MapSettings = {
+  clustering: true,
+  zones: true,
+};
+
 // Weather (Open-Meteo)
 
 export interface WeatherData {

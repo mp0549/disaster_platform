@@ -1,4 +1,4 @@
-import type { Map as MaplibreMap } from "maplibre-gl";
+import type { Map as MaplibreMap, GeoJSONSource, MapMouseEvent } from "maplibre-gl";
 import type { EventSummary } from "@/lib/types";
 import { TYPE_COLORS, TYPE_EMOJI, TYPE_LABELS, SEVERITY_COLORS } from "@/lib/constants";
 
@@ -8,6 +8,9 @@ export const SEVERITY_RADII: Record<string, number> = {
   HIGH: 10,
   EXTREME: 14,
 };
+
+const CLUSTER_MAX_ZOOM = 5;
+const CLUSTER_RADIUS = 50;
 
 export function buildGeoJSON(events: EventSummary[]) {
   return {
@@ -27,7 +30,7 @@ export function buildGeoJSON(events: EventSummary[]) {
 }
 
 // Build a MapLibre `match` expression array from a plain Record.
-// MapLibre's expression types are intentionally loose, so we use a tuple cast at the call site.
+// MapLibre's expression types are intentionally loose, so callers cast at the use site.
 function matchExpr(property: string, map: Record<string, unknown>, fallback: unknown) {
   const expr: unknown[] = ["match", ["get", property]];
   for (const [key, value] of Object.entries(map)) {
@@ -37,22 +40,108 @@ function matchExpr(property: string, map: Record<string, unknown>, fallback: unk
   return expr;
 }
 
+const NOT_CLUSTER_FILTER = ["!", ["has", "point_count"]] as never;
+
+export interface EventLayersHandle {
+  remove: () => void;
+}
+
 /**
- * Add the GeoJSON source and the three event circle layers (halo, pulse, main).
- * Call after the map's `load` event fires. Idempotent guard not included — caller
- * should only invoke once per map instance.
+ * Set up the events source + all rendering layers. Returns a handle whose
+ * `remove()` tears everything down so callers can rebuild with new options
+ * (e.g. when the user toggles clustering at runtime).
+ *
+ * Layers added:
+ *  - events-clusters       (only if clustering on) — circle bubble for grouped points
+ *  - events-cluster-count  (only if clustering on) — point-count label
+ *  - events-halo           — soft glow behind each unclustered point
+ *  - events-pulse          — animated ring on EXTREME unclustered points (caller animates)
+ *  - events-main           — main marker circle for each unclustered point
  */
-export function addEventLayers(map: MaplibreMap) {
+export function setupEventLayers(
+  map: MaplibreMap,
+  options: { clustering: boolean }
+): EventLayersHandle {
   map.addSource("events", {
     type: "geojson",
     data: { type: "FeatureCollection", features: [] },
+    cluster: options.clustering,
+    clusterMaxZoom: CLUSTER_MAX_ZOOM,
+    clusterRadius: CLUSTER_RADIUS,
   });
 
-  // Outer glow — soft halo behind each marker
+  // Click a cluster → zoom to the level at which it expands. Bound only when
+  // clustering is on so toggling off cleanly detaches it.
+  const onClusterClick = (e: MapMouseEvent) => {
+    const features = map.queryRenderedFeatures(e.point, { layers: ["events-clusters"] });
+    const feature = features[0];
+    if (!feature) return;
+    const clusterId = feature.properties?.cluster_id as number | undefined;
+    if (clusterId === undefined) return;
+
+    const source = map.getSource("events") as GeoJSONSource;
+    source.getClusterExpansionZoom(clusterId).then((zoom) => {
+      const coords = (feature.geometry as GeoJSON.Point).coordinates as [number, number];
+      map.easeTo({ center: coords, zoom });
+    }).catch(() => {
+      // Cluster may have expired between hover and click — ignore
+    });
+  };
+
+  if (options.clustering) {
+    map.addLayer({
+      id: "events-clusters",
+      type: "circle",
+      source: "events",
+      filter: ["has", "point_count"],
+      paint: {
+        "circle-color": "rgba(59, 130, 246, 0.32)",
+        "circle-stroke-color": "rgba(59, 130, 246, 0.75)",
+        "circle-stroke-width": 1.5,
+        // Larger bubbles for bigger clusters
+        "circle-radius": [
+          "step",
+          ["get", "point_count"],
+          16,  // < 10 points
+          10, 22, // 10+ → 22
+          50, 28, // 50+ → 28
+          200, 36, // 200+ → 36
+        ],
+      },
+    });
+
+    map.addLayer({
+      id: "events-cluster-count",
+      type: "symbol",
+      source: "events",
+      filter: ["has", "point_count"],
+      layout: {
+        "text-field": ["get", "point_count_abbreviated"],
+        "text-font": ["Noto Sans Bold"],
+        "text-size": 12,
+        "text-allow-overlap": true,
+      },
+      paint: {
+        "text-color": "#ffffff",
+        "text-halo-color": "rgba(10, 10, 20, 0.6)",
+        "text-halo-width": 1,
+      },
+    });
+
+    map.on("click", "events-clusters", onClusterClick);
+    map.on("mouseenter", "events-clusters", () => {
+      map.getCanvas().style.cursor = "pointer";
+    });
+    map.on("mouseleave", "events-clusters", () => {
+      map.getCanvas().style.cursor = "";
+    });
+  }
+
   map.addLayer({
     id: "events-halo",
     type: "circle",
     source: "events",
+    filter: NOT_CLUSTER_FILTER,
     paint: {
       "circle-color": matchExpr("type", TYPE_COLORS, "#6b7280") as never,
       "circle-radius": matchExpr(
@@ -70,12 +159,11 @@ export function addEventLayers(map: MaplibreMap) {
     },
   });
 
-  // Pulse ring — EXTREME only, animated by caller
   map.addLayer({
     id: "events-pulse",
     type: "circle",
     source: "events",
-    filter: ["==", ["get", "severity"], "EXTREME"],
+    filter: ["all", NOT_CLUSTER_FILTER, ["==", ["get", "severity"], "EXTREME"]] as never,
     paint: {
       "circle-color": matchExpr("type", TYPE_COLORS, "#ef4444") as never,
       "circle-radius": 20,
@@ -84,11 +172,11 @@ export function addEventLayers(map: MaplibreMap) {
     },
   });
 
-  // Main marker
   map.addLayer({
     id: "events-main",
     type: "circle",
     source: "events",
+    filter: NOT_CLUSTER_FILTER,
     paint: {
       "circle-color": matchExpr("type", TYPE_COLORS, "#6b7280") as never,
       "circle-radius": matchExpr("severity", SEVERITY_RADII, 7) as never,
@@ -97,6 +185,26 @@ export function addEventLayers(map: MaplibreMap) {
       "circle-stroke-color": "rgba(255, 255, 255, 0.2)",
     },
   });
+
+  return {
+    remove: () => {
+      if (options.clustering) {
+        map.off("click", "events-clusters", onClusterClick);
+      }
+      // Layers removed in reverse order so dependent layers go first
+      const layerIds = [
+        "events-main",
+        "events-pulse",
+        "events-halo",
+        "events-cluster-count",
+        "events-clusters",
+      ];
+      for (const id of layerIds) {
+        if (map.getLayer(id)) map.removeLayer(id);
+      }
+      if (map.getSource("events")) map.removeSource("events");
+    },
+  };
 }
 
 interface PopupProps {
