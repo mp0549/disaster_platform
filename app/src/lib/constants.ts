@@ -83,6 +83,13 @@ export const ALL_DISASTER_TYPES: DisasterType[] = [
   "OTHER",
 ];
 
+/** Default dashboard filters; restored by the panel's Reset link. */
+export const DEFAULT_FILTERS = {
+  types: [...ALL_DISASTER_TYPES],
+  severity: null as null,
+  timeRange: "30d" as const,
+};
+
 export const ALL_SEVERITIES: Severity[] = ["LOW", "MODERATE", "HIGH", "EXTREME"];
 
 export const ALL_SOURCES: EventSource[] = [

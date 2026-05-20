@@ -109,10 +109,12 @@ export interface StatsResponse {
 
 // Filter state
 
+export type TimeRange = "live" | "24h" | "7d" | "30d" | "all";
+
 export interface FilterState {
   types: DisasterType[];
   severity: Severity | null;
-  timeRange: "live" | "24h" | "7d" | "30d" | "all";
+  timeRange: TimeRange;
 }
 
 // Map rendering settings (separate from filters — these don't affect which

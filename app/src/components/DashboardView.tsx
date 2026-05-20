@@ -108,6 +108,18 @@ export default function DashboardView() {
               <MapView2D events={filteredEvents} settings={mapSettings} />
             </ErrorBoundary>
           )}
+
+          {/* Empty state — surfaced when filters narrow to nothing */}
+          {filteredEvents.length === 0 && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+              <div className="pointer-events-auto bg-dark-bg/90 backdrop-blur-sm border border-dark-border rounded-lg px-5 py-4 text-center shadow-xl max-w-xs">
+                <p className="text-[13px] font-medium text-dark-text">No events match these filters</p>
+                <p className="text-[11px] text-dark-muted mt-1.5 leading-relaxed">
+                  Try a wider time range, more types, or a lower severity.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

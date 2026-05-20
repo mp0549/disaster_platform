@@ -4,6 +4,7 @@ import TypeFilter from "./TypeFilter";
 import SeverityFilter from "./SeverityFilter";
 import TimeRangeFilter from "./TimeRangeFilter";
 import AdvancedSettings from "./AdvancedSettings";
+import { ALL_DISASTER_TYPES, DEFAULT_FILTERS } from "@/lib/constants";
 import type { FilterState, MapSettings } from "@/lib/types";
 
 interface FilterPanelProps {
@@ -14,6 +15,14 @@ interface FilterPanelProps {
   onMapSettingsChange: (next: MapSettings) => void;
 }
 
+function isDefaultFilters(f: FilterState): boolean {
+  return (
+    f.timeRange === DEFAULT_FILTERS.timeRange &&
+    f.severity === DEFAULT_FILTERS.severity &&
+    f.types.length === ALL_DISASTER_TYPES.length
+  );
+}
+
 export default function FilterPanel({
   filters,
   onChange,
@@ -21,6 +30,8 @@ export default function FilterPanel({
   mapSettings,
   onMapSettingsChange,
 }: FilterPanelProps) {
+  const isModified = !isDefaultFilters(filters);
+
   return (
     <div
       className="glass absolute left-0 top-0 bottom-0 z-30 w-[260px] flex flex-col overflow-y-auto"
@@ -28,13 +39,25 @@ export default function FilterPanel({
     >
       {/* Panel header */}
       <div className="px-5 pb-4 border-b border-white/5">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <span className="text-[11px] font-bold tracking-[0.12em] text-dark-text uppercase">
             Filters
           </span>
-          <span className="label-mono">
-            {eventCount.toLocaleString()} events
-          </span>
+          <div className="flex items-center gap-1.5 label-mono">
+            {isModified && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onChange({ ...DEFAULT_FILTERS, types: [...ALL_DISASTER_TYPES] })}
+                  className="text-dark-accent hover:text-blue-400 transition-colors duration-150 uppercase tracking-wider"
+                >
+                  Reset
+                </button>
+                <span aria-hidden className="opacity-50">·</span>
+              </>
+            )}
+            <span className="tabular-nums">{eventCount.toLocaleString()} events</span>
+          </div>
         </div>
       </div>
 

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { EventSummary } from "@/lib/types";
+import Spinner from "../ui/Spinner";
 
 interface GlobeSceneInstance {
   updateEvents: (events: EventSummary[]) => void;
@@ -49,16 +50,12 @@ export default function Globe({ events }: GlobeProps) {
   }, [events, isLoaded]);
 
   return (
-    <div
-      ref={containerRef}
-      className="w-full h-full"
-      style={{ background: "#0a0a0f" }}
-    >
+    <div ref={containerRef} className="w-full h-full bg-dark-bg">
       {!isLoaded && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
-            <div className="w-8 h-8 border-2 border-[#3b82f6] border-t-transparent rounded-full animate-spin" />
-            <span className="label-mono text-[#6b7280]">Initializing Globe</span>
+            <Spinner size="lg" />
+            <span className="label-mono">Initializing Globe</span>
           </div>
         </div>
       )}
