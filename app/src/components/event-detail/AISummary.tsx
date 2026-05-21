@@ -102,7 +102,7 @@ export default function AISummary({ eventId, initialSummary, initialGeneratedAt 
           <div>
             <p className="text-[14px] text-sky-strong leading-relaxed">{displaySummary}</p>
             {displayGeneratedAt && (
-              <p className="text-[10px] text-sky-faint mt-3">
+              <p suppressHydrationWarning className="text-[10px] text-sky-faint mt-3">
                 Generated {new Date(displayGeneratedAt).toLocaleString()}
                 {groundedSummary && <span className="ml-1 opacity-70">· grounded</span>}
               </p>

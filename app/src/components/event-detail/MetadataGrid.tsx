@@ -58,7 +58,7 @@ function MetaCell({ label, value }: MetaItem) {
       <dt className="text-[10px] font-semibold tracking-[0.1em] uppercase text-light-subtle">
         {label}
       </dt>
-      <dd className="text-[13px] text-light-text font-medium break-words">
+      <dd suppressHydrationWarning className="text-[13px] text-light-text font-medium break-words">
         {value || <span className="text-light-subtle font-normal">—</span>}
       </dd>
     </div>

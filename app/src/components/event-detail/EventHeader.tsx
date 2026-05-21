@@ -62,7 +62,7 @@ export default function EventHeader({ event }: EventHeaderProps) {
         {event.title}
       </h1>
 
-      <p className="relative text-[12px] text-light-subtle mb-5 tracking-wide">
+      <p suppressHydrationWarning className="relative text-[12px] text-light-subtle mb-5 tracking-wide">
         {metaParts.join("  ·  ")}
       </p>
 
