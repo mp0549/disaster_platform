@@ -61,6 +61,7 @@ class _USGSBaseIngestor(BaseIngestor):
                     region=region,
                     started_at=started_at,
                     raw_data=feature,
+                    source_url=props.get("url"),
                 ))
             except Exception as e:
                 logger.warning("[USGS] Failed to normalize feature: %s", e)
@@ -69,13 +70,13 @@ class _USGSBaseIngestor(BaseIngestor):
 
 
 class USGSIngestorHourly(_USGSBaseIngestor):
-    """Polls the hourly feed — all earthquakes in the last hour. Interval: 5 min."""
-    url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson"
+    """Polls the hourly feed — M2.5+ earthquakes in the last hour. Interval: 5 min."""
+    url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_hour.geojson"
 
 
 class USGSIngestorDaily(_USGSBaseIngestor):
-    """Polls the daily feed — all earthquakes in the last day. Interval: 30 min."""
-    url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson"
+    """Polls the daily feed — M2.5+ earthquakes in the last day. Interval: 30 min."""
+    url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson"
 
 
 class USGSIngestorWeekly(_USGSBaseIngestor):

@@ -71,6 +71,7 @@ export const SOURCE_LABELS: Record<EventSource, string> = {
   RELIEFWEB: "ReliefWeb",
   FIRMS: "NASA FIRMS",
   NOAA: "NOAA/NWS",
+  IFRC: "IFRC GO",
 };
 
 export const ALL_DISASTER_TYPES: DisasterType[] = [
@@ -138,6 +139,7 @@ export const ALL_SOURCES: EventSource[] = [
   "RELIEFWEB",
   "FIRMS",
   "NOAA",
+  "IFRC",
 ];
 
 // WMO weather codes to human-readable strings

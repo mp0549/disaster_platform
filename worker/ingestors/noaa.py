@@ -40,6 +40,11 @@ class NOAAIngestor(BaseIngestor):
                 description = (props.get("description") or "")[:2000]
 
                 severity_raw = props.get("severity", "")
+
+                # Skip watches/advisories — only ingest confirmed warnings (Severe/Extreme)
+                if severity_raw not in ("Severe", "Extreme"):
+                    continue
+
                 severity = map_noaa_severity(severity_raw)
 
                 # Determine status
@@ -106,6 +111,7 @@ class NOAAIngestor(BaseIngestor):
                     region=area_desc[:500] if area_desc else None,
                     started_at=started_at,
                     raw_data=props,
+                    source_url=props.get("@id"),
                 ))
             except Exception as e:
                 logger.warning("[NOAA] Failed to normalize alert: %s", e)

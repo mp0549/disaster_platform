@@ -2,8 +2,9 @@
 OpenFEMA Disaster Declarations ingestor.
 """
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
+from urllib.parse import quote
 
 from ingestors.base import BaseIngestor
 from models import NormalizedEvent
@@ -14,11 +15,6 @@ from normalizer import (
 )
 
 logger = logging.getLogger(__name__)
-
-FEMA_URL = (
-    "https://www.fema.gov/api/open/v2/DisasterDeclarationsSummaries"
-    "?$orderby=declarationDate%20desc&$top=100"
-)
 
 # State abbreviation → full name mapping for centroid lookup
 STATE_ABBR = {
@@ -42,7 +38,19 @@ STATE_ABBR = {
 
 class FEMAIngestor(BaseIngestor):
     source = "FEMA"
-    url = FEMA_URL
+
+    @property
+    def url(self) -> str:
+        # Rolling 90-day window; exclude Fire Management Assistance Grants (FM) —
+        # those are funding instruments, not declared disasters.
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=90)).strftime("%Y-%m-%dT00:00:00.000Z")
+        filter_str = f"declarationDate ge '{cutoff}' and declarationType ne 'FM'"
+        return (
+            "https://www.fema.gov/api/open/v2/DisasterDeclarationsSummaries"
+            f"?$orderby=declarationDate%20desc"
+            f"&$top=200"
+            f"&$filter={quote(filter_str)}"
+        )
 
     def normalize(self, raw_data: Any) -> list[NormalizedEvent]:
         events = []
@@ -100,6 +108,7 @@ class FEMAIngestor(BaseIngestor):
                     region=state_name,
                     started_at=started_at,
                     raw_data=decl,
+                    source_url=f"https://www.fema.gov/disaster/{disaster_number}",
                 ))
             except Exception as e:
                 logger.warning("[FEMA] Failed to normalize declaration: %s", e)

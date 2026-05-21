@@ -1,6 +1,6 @@
 // Enums matching Prisma schema
 
-export type EventSource = "USGS" | "EONET" | "GDACS" | "FEMA" | "RELIEFWEB" | "FIRMS" | "NOAA";
+export type EventSource = "USGS" | "EONET" | "GDACS" | "FEMA" | "RELIEFWEB" | "FIRMS" | "NOAA" | "IFRC";
 
 export type DisasterType =
   | "EARTHQUAKE"
@@ -58,6 +58,27 @@ export interface EventDetail {
   rawData: Record<string, unknown>;
   aiSummary: string | null;
   aiSummaryGeneratedAt: string | null;
+  sourceUrl: string | null;
+}
+
+export interface NewsItem {
+  title: string;
+  url: string;
+  source: string;
+  publishedAt: string | null;
+}
+
+export interface EventEnrichment {
+  eventId: string;
+  newsItems: NewsItem[] | null;
+  wikipediaUrl: string | null;
+  wikipediaSummary: string | null;
+  reliefwebReports: import("@/lib/reliefweb").ReliefWebReport[] | null;
+  similarEventIds: string[] | null;
+  groundedAiSummary: string | null;
+  groundedAiGeneratedAt: string | null;
+  enrichedAt: string;
+  partial: boolean;
 }
 
 export interface EventUpdate {

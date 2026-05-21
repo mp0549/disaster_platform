@@ -168,6 +168,44 @@ COUNTRY_CENTROIDS: dict[str, tuple[float, float]] = {
     "Vietnam": (14.058324, 108.277199),
     "Yemen": (15.552727, 48.516388),
     "Zimbabwe": (-19.015438, 29.154857),
+    # Additional countries for IFRC coverage
+    "Zambia": (-13.133897, 27.849332),
+    "Rwanda": (-1.940278, 29.873888),
+    "Burundi": (-3.373056, 29.918886),
+    "Eritrea": (15.179384, 39.782334),
+    "Djibouti": (11.825138, 42.590275),
+    "Togo": (8.619543, 0.824782),
+    "Benin": (9.307690, 2.315834),
+    "Liberia": (6.428055, -9.429499),
+    "Sierra Leone": (8.460555, -11.779889),
+    "Gambia": (13.443182, -15.310139),
+    "Guinea-Bissau": (11.803749, -15.180413),
+    "Fiji": (-17.713371, 178.065032),
+    "Vanuatu": (-15.376706, 166.959158),
+    "Solomon Islands": (-9.645710, 160.156194),
+    "Papua New Guinea": (-6.314993, 143.955550),
+    "South Korea": (35.907757, 127.766922),
+    "Republic of Korea": (35.907757, 127.766922),
+    "Korea": (35.907757, 127.766922),
+    "Türkiye": (38.963745, 35.243322),
+    "Kyrgyzstan": (41.204380, 74.766098),
+    "Tajikistan": (38.861034, 71.276093),
+    "Mongolia": (46.862496, 103.846656),
+    "Tunisia": (33.886917, 9.537499),
+    "Libya": (26.335100, 17.228331),
+    "Algeria": (28.033886, 1.659626),
+    "Cuba": (21.521757, -77.781167),
+    "Haiti": (18.971187, -72.285215),
+    "Trinidad and Tobago": (10.691803, -61.222503),
+    "Jamaica": (18.109581, -77.297508),
+    "Barbados": (13.193887, -59.543198),
+    "Guyana": (4.860416, -58.930180),
+    "Suriname": (3.919305, -56.027783),
+    "Bolivia": (-16.290154, -63.588653),
+    "Paraguay": (-23.442503, -58.443832),
+    "Uruguay": (-32.522779, -55.765835),
+    "Maldives": (3.202778, 73.220680),
+    "Sri Lanka": (7.873054, 80.771797),
 }
 
 
@@ -318,6 +356,35 @@ def firms_confidence_to_severity(confidence: str | float) -> str:
         return "HIGH"
     else:
         return "EXTREME"
+
+
+def map_ifrc_disaster_type(dtype_name: str) -> str:
+    """Map IFRC GO dtype.name strings to DisasterType."""
+    t = dtype_name.lower()
+    if "earthquake" in t or "seismic" in t or "tsunami" in t:
+        return "EARTHQUAKE"
+    if "flood" in t:
+        return "FLOOD"
+    if "fire" in t or "wildfire" in t:
+        return "WILDFIRE"
+    if any(w in t for w in ["cyclone", "storm", "hurricane", "typhoon", "wind", "surge"]):
+        return "STORM"
+    if "volcan" in t or "eruption" in t:
+        return "VOLCANO"
+    if "drought" in t:
+        return "DROUGHT"
+    return "OTHER"  # epidemic, cold/heat wave, landslide, complex emergency, etc.
+
+
+def ifrc_severity(num_affected: int) -> str:
+    """Estimate severity from IFRC's num_affected field."""
+    if num_affected < 1_000:
+        return "LOW"
+    if num_affected < 50_000:
+        return "MODERATE"
+    if num_affected < 500_000:
+        return "HIGH"
+    return "EXTREME"
 
 
 def strip_html(text: str) -> str:

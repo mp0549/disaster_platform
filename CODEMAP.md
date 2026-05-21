@@ -31,7 +31,7 @@ Conventions:
 - `app/src/app/layout.tsx` — root layout: fonts, global CSS, body shell.
 - `app/src/app/page.tsx` — `/` route; renders `<DashboardView />`.
 - `app/src/app/not-found.tsx` — 404 page (dark theme, big "Not Found").
-- `app/src/app/events/[id]/page.tsx` — event detail (force-dynamic). Reads event row, renders Header/Map/Metadata/AISummary/Weather/ReliefWeb/UpdateTimeline.
+- `app/src/app/events/[id]/page.tsx` — event detail (force-dynamic). Fetches event + enrichment row in parallel; wraps in `EnrichmentProvider`; renders Header/SourceLink/AISummary/Map/Metadata/News/ReliefWeb/Weather/Wikipedia/UpdateTimeline/SimilarEvents.
 - `app/src/app/events/[id]/loading.tsx` — Suspense skeleton for the detail page.
 - `app/src/app/monitor/page.tsx` — internal ops view; orchestrates data fetching, renders SourceStatusTable + EventsTable. Inline styles (dark theme, internal-only).
 - `app/src/app/monitor/SourceStatusTable.tsx` — source health table (used by monitor).
@@ -42,6 +42,7 @@ Conventions:
 - `app/src/app/api/events/route.ts` — main list endpoint; filters by type/severity/since/status. Supports `?debug=1`.
 - `app/src/app/api/events/[id]/route.ts` — single event fetch (used by `useEventDetail` SWR hook).
 - `app/src/app/api/events/[id]/updates/route.ts` — event_updates timeline for an event.
+- `app/src/app/api/events/[id]/enrich/route.ts` — POST enrichment endpoint. Freshness check (ACTIVE 15min/CLOSED never). Orchestrates news+wiki+reliefweb+similar, grounds Gemini summary, upserts `event_enrichment`.
 - `app/src/app/api/events/[id]/summarize/route.ts` — Gemini summary endpoint; caches into `events.ai_summary`.
 - `app/src/app/api/sources/route.ts` — `source_status` table dump for the monitor and any external watcher.
 - `app/src/app/api/stats/route.ts` — aggregate counts (totals, by-type, by-severity, by-source).
@@ -53,9 +54,15 @@ Conventions:
 - `app/src/lib/types.ts` — all shared TS types: enums, EventSummary, EventDetail, FilterState, WeatherData, etc.
 - `app/src/lib/constants.ts` — TYPE_COLORS, TYPE_LABELS, SEVERITY_SCALE, SOURCE_LABELS, WMO_WEATHER_CODES.
 - `app/src/lib/geo.ts` — `latLonToVector3` / `latLonToQuaternion` for 3D placement on the globe.
-- `app/src/lib/gemini.ts` — Gemini Flash 2.0 client. 8s timeout for Vercel 10s limit. 3-sentence disaster-analyst prompt.
+- `app/src/lib/gemini.ts` — Gemini Flash 2.0 client. `generateEventSummary` (ungrounded fallback) + `generateGroundedSummary` (cites news/wiki/reliefweb sources). 8s timeout.
 - `app/src/lib/weather.ts` — Open-Meteo current-conditions fetcher.
-- `app/src/lib/reliefweb.ts` — ReliefWeb v1 API client (country filter only — known limitation, enrichment slice fixes).
+- `app/src/lib/reliefweb.ts` — ReliefWeb v1 API client; country-only filter (used as legacy fallback).
+- `app/src/lib/enrichment/news.ts` — Google News RSS fetcher. Regex-parses RSS, returns top-6 NewsItems.
+- `app/src/lib/enrichment/wikipedia.ts` — Wikipedia OpenSearch + summary REST. Returns {url, summary} or null.
+- `app/src/lib/enrichment/reliefweb.ts` — Upgraded ReliefWeb fetch: country + disaster type + date window filter.
+- `app/src/lib/enrichment/source-url.ts` — Runtime fallback source_url extractor from raw_data, per source.
+- `app/src/lib/enrichment/similar.ts` — Supabase query: same type+country, ordered by date, limit 5.
+- `app/src/lib/enrichment/enrich.ts` — Orchestrator: `Promise.allSettled` over all sources with 4s timeout each; `mapEnrichmentRow` helper.
 
 ### Hooks (client-side SWR wrappers)
 - `app/src/hooks/useEvents.ts` — SWR over `/api/events` with filters; 60s poll.
@@ -90,9 +97,14 @@ Conventions:
 - `app/src/components/event-detail/EventHeader.tsx` — title + badges + back link (light theme).
 - `app/src/components/event-detail/MetadataGrid.tsx` — 2-col `<dl>` of event fields (coords, country, region, dates, source, external id).
 - `app/src/components/event-detail/EventMap.tsx` — MapLibre map zoomed to the event's lat/lon + geometry. Client-only (dynamic import).
-- `app/src/components/event-detail/AISummary.tsx` — renders cached Gemini summary; triggers `/summarize` on mount if missing.
+- `app/src/components/event-detail/EnrichmentProvider.tsx` — React context provider. Fires POST /enrich if missing/stale; exposes `useEnrichment()` hook.
+- `app/src/components/event-detail/AISummary.tsx` — prefers grounded summary from enrichment context; falls back to ungrounded Gemini fetch.
+- `app/src/components/event-detail/NewsPanel.tsx` — renders `news_items` from enrichment context with source + relative time.
+- `app/src/components/event-detail/WikipediaPanel.tsx` — renders `wikipedia_summary` + link; hidden when null.
+- `app/src/components/event-detail/SimilarEvents.tsx` — fetches `similar_event_ids` from context, renders small event cards.
+- `app/src/components/event-detail/SourceLink.tsx` — "View on USGS →" pill chip; renders nothing when source_url is null.
 - `app/src/components/event-detail/WeatherPanel.tsx` — Open-Meteo current conditions for event coords. Client fetch.
-- `app/src/components/event-detail/ReliefWebPanel.tsx` — ReliefWeb reports for event country. Client fetch.
+- `app/src/components/event-detail/ReliefWebPanel.tsx` — ReliefWeb reports panel; reads from enrichment context (no client-side fetch).
 - `app/src/components/event-detail/UpdateTimeline.tsx` — timeline of `event_updates` changes.
 
 ### Components: 3D globe (Three.js)
@@ -120,7 +132,7 @@ Conventions:
 - `worker/main.py` — FastAPI bootstrap, `/health` endpoint, startup config validation + schema check.
 - `worker/config.py` — `Config` class reading DATABASE_URL_DIRECT / API keys from env.
 - `worker/db.py` — psycopg2 ThreadedConnectionPool (1–5 conns). `upsert_event` + `event_updates` diff logic. Direct SQL, no ORM.
-- `worker/scheduler.py` — APScheduler BackgroundScheduler; registers 9 ingestion jobs across the 7 sources.
+- `worker/scheduler.py` — APScheduler BackgroundScheduler; registers 10 ingestion jobs across 8 sources.
 - `worker/models.py` — Pydantic `NormalizedEvent`; shape all ingestors normalize to before DB write.
 - `worker/normalizer.py` — lookup tables (US state + country centroids) + mapping functions (gdacs/eonet/fema/noaa/reliefweb type → DisasterType, magnitude/confidence → Severity, HTML stripper).
 - `worker/ingestors/__init__.py` — package marker.
@@ -132,3 +144,4 @@ Conventions:
 - `worker/ingestors/noaa.py` — NOAA NWS active alerts API.
 - `worker/ingestors/reliefweb.py` — ReliefWeb v1 reports API; uses country centroids for geocoding.
 - `worker/ingestors/firms.py` — NASA FIRMS active-fire CSV; clusters via geohash.
+- `worker/ingestors/ifrc.py` — IFRC GO global humanitarian emergencies; 180-day rolling window; geocodes via country centroid.

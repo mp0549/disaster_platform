@@ -29,6 +29,7 @@ def configure_scheduler() -> BackgroundScheduler:
     from ingestors.firms import FIRMSIngestor
     from ingestors.noaa import NOAAIngestor
     from ingestors.reliefweb import ReliefWebIngestor
+    from ingestors.ifrc import IFRCIngestor
 
     scheduler = BackgroundScheduler(
         job_defaults={
@@ -113,6 +114,15 @@ def configure_scheduler() -> BackgroundScheduler:
         args=[ReliefWebIngestor],
         id="reliefweb",
         name="ReliefWeb",
+    )
+
+    # IFRC GO — every 60 minutes (global humanitarian emergencies)
+    scheduler.add_job(
+        run_ingestor,
+        trigger=IntervalTrigger(minutes=60),
+        args=[IFRCIngestor],
+        id="ifrc",
+        name="IFRC GO",
     )
 
     logger.info("Scheduler configured with %d jobs.", len(scheduler.get_jobs()))

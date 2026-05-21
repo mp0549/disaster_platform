@@ -16,6 +16,7 @@ enum EventSource {
   RELIEFWEB
   FIRMS
   NOAA
+  IFRC
 }
 
 enum DisasterType {
