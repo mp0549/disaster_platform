@@ -12,15 +12,21 @@ export default function StatsBar() {
       {/* Total active */}
       <div className="flex items-center gap-2 shrink-0">
         <span className="label-mono">Active</span>
-        <span
-          className="text-[13px] font-semibold tabular-nums text-[#e5e5e5] count-transition"
-          aria-live="polite"
-        >
-          {isLoading ? "—" : (stats?.activeEvents ?? 0).toLocaleString()}
-        </span>
+        {isLoading ? (
+          <span className="text-[13px] font-semibold tabular-nums" style={{ color: "#EF9F27" }}>—</span>
+        ) : (
+          <span
+            key={stats?.activeEvents}
+            className="text-[13px] font-semibold tabular-nums count-pop"
+            style={{ color: "#EF9F27" }}
+            aria-live="polite"
+          >
+            {(stats?.activeEvents ?? 0).toLocaleString()}
+          </span>
+        )}
       </div>
 
-      <div className="w-px h-4 bg-[#1a1a2e] shrink-0" />
+      <div className="w-px h-4 bg-dark-border shrink-0" />
 
       {/* Per-type breakdown */}
       <div className="flex items-center gap-4 overflow-x-auto no-scrollbar">
@@ -34,15 +40,16 @@ export default function StatsBar() {
                 className="w-1.5 h-1.5 rounded-full shrink-0"
                 style={{ backgroundColor: color }}
               />
-              <span className="label-mono" style={{ color: `${color}cc` }}>
+              <span className="label-mono" style={{ color: `${color}bb` }}>
                 {TYPE_LABELS[type as DisasterType]}
               </span>
-              <span
-                className="text-[12px] font-medium tabular-nums count-transition"
-                style={{ color }}
-              >
-                {isLoading ? "—" : count}
-              </span>
+              {isLoading ? (
+                <span className="text-[12px] font-semibold tabular-nums" style={{ color }}>—</span>
+              ) : (
+                <span key={count} className="text-[12px] font-semibold tabular-nums count-pop" style={{ color }}>
+                  {count}
+                </span>
+              )}
             </div>
           );
         })}
@@ -51,9 +58,9 @@ export default function StatsBar() {
       {/* Last updated */}
       {stats?.lastUpdated && (
         <>
-          <div className="ml-auto w-px h-4 bg-[#1a1a2e] shrink-0" />
+          <div className="ml-auto w-px h-4 bg-dark-border shrink-0" />
           <span className="label-mono shrink-0">
-            Updated {new Date(stats.lastUpdated).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            {new Date(stats.lastUpdated).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </span>
         </>
       )}

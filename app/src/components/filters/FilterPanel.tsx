@@ -49,7 +49,7 @@ export default function FilterPanel({
                 <button
                   type="button"
                   onClick={() => onChange({ ...DEFAULT_FILTERS, types: [...ALL_DISASTER_TYPES] })}
-                  className="text-dark-accent hover:text-blue-400 transition-colors duration-150 uppercase tracking-wider"
+                  className="text-dark-accent hover:text-blue-400 transition-colors duration-150 active:scale-[0.95] uppercase tracking-wider"
                 >
                   Reset
                 </button>
@@ -62,7 +62,7 @@ export default function FilterPanel({
       </div>
 
       {/* Filter sections */}
-      <div className="px-5 py-4 flex flex-col gap-6 flex-1">
+      <div className="px-5 py-3 flex flex-col gap-4 flex-1">
         <TimeRangeFilter
           selected={filters.timeRange}
           onChange={(timeRange) => onChange({ ...filters, timeRange })}

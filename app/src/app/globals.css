@@ -167,11 +167,14 @@ body {
 
 /* Interactive element transitions */
 .interactive {
-  transition: opacity 150ms ease, transform 150ms var(--ease-out);
+  transition: opacity 150ms ease, transform 150ms var(--ease-out),
+              background-color 150ms ease, border-color 150ms ease, color 150ms ease;
 }
 
-.interactive:hover {
-  opacity: 0.85;
+@media (hover: hover) and (pointer: fine) {
+  .interactive:hover {
+    opacity: 0.85;
+  }
 }
 
 .interactive:active {
@@ -206,6 +209,10 @@ body {
   0%   { transform: scale(1); }
   50%  { transform: scale(1.18); }
   100% { transform: scale(1); }
+}
+
+.count-pop {
+  animation: countPop 350ms var(--ease-out) both;
 }
 
 /* Stagger animation for list items */

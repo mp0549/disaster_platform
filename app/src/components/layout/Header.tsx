@@ -58,7 +58,7 @@ function ThemeToggle() {
     <button
       onClick={toggle}
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors duration-150 text-dark-muted hover:text-dark-text border border-dark-border hover:border-dark-text/30"
+      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors duration-150 active:scale-[0.97] text-dark-muted hover:text-dark-text border border-dark-border hover:border-dark-text/30"
     >
       {isDark ? <SunIcon /> : <MoonIcon />}
       {isDark ? "Light" : "Dark"}
@@ -88,7 +88,7 @@ export default function Header() {
           <svg
             viewBox="0 0 24 24"
             fill="none"
-            className="w-6 h-6 transition-transform duration-500 ease-out group-hover:rotate-12"
+            className="w-6 h-6 transition-transform duration-300 ease-out group-hover:rotate-12"
           >
             <circle cx="12" cy="12" r="9" stroke="#EF9F27" strokeWidth="1.5" />
             <ellipse cx="12" cy="12" rx="4" ry="9" stroke="#EF9F27" strokeWidth="1.5" />
