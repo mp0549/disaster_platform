@@ -44,10 +44,8 @@ export async function POST(
     });
 
     if (!summary) {
-      return NextResponse.json(
-        { error: "AI summarization temporarily unavailable" },
-        { status: 503 }
-      );
+      // Gemini key absent or timed out — not a service failure, just unavailable
+      return NextResponse.json({ aiSummary: null, cached: false });
     }
 
     const generatedAt = new Date().toISOString();

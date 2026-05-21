@@ -65,8 +65,12 @@ export default function AISummary({ eventId, initialSummary, initialGeneratedAt 
       try {
         const result = await triggerSummarize(eventId);
         if (!cancelled) {
-          setSummary(result.aiSummary);
-          setGeneratedAt(result.aiSummaryGeneratedAt);
+          if (result.aiSummary) {
+            setSummary(result.aiSummary);
+            setGeneratedAt(result.aiSummaryGeneratedAt);
+          } else {
+            setError(true);
+          }
           setIsLoading(false);
         }
       } catch {

@@ -102,8 +102,8 @@ export interface EventUpdatesResponse {
 }
 
 export interface SummarizeResponse {
-  aiSummary: string;
-  aiSummaryGeneratedAt: string;
+  aiSummary: string | null;
+  aiSummaryGeneratedAt: string | null;
   cached: boolean;
 }
 

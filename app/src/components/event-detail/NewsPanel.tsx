@@ -19,7 +19,8 @@ function RelativeTime({ dateStr }: { dateStr: string | null }) {
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
   const label = days >= 1 ? `${days}d ago` : hours >= 1 ? `${hours}h ago` : "Just now";
-  return <span className="text-[11px] text-light-subtle">{label}</span>;
+  // suppressHydrationWarning: Date.now() differs between server and client by design
+  return <span suppressHydrationWarning className="text-[11px] text-light-subtle">{label}</span>;
 }
 
 function ExternalArrow() {

@@ -35,13 +35,18 @@ interface Props {
 
 export default function EnrichmentProvider({ initialEnrichment, eventId, status, children }: Props) {
   const [enrichment, setEnrichment] = useState<EventEnrichment | null>(initialEnrichment);
-  const [isLoading, setIsLoading] = useState(needsRefresh(initialEnrichment, status));
+  // Don't call Date.now() during render — it differs between server and client, causing hydration
+  // mismatch (#422). Show loading only when there's no data to display; stale-data refreshes are
+  // handled silently in the background via useEffect.
+  const [isLoading, setIsLoading] = useState(!initialEnrichment || !!initialEnrichment.partial);
 
   useEffect(() => {
     if (!needsRefresh(initialEnrichment, status)) return;
 
     let cancelled = false;
-    setIsLoading(true);
+    // Only show loading spinner if there's no enrichment to display yet;
+    // for stale-but-complete enrichment, update silently in the background.
+    if (!initialEnrichment || initialEnrichment.partial) setIsLoading(true);
 
     fetch(`/api/events/${eventId}/enrich`, { method: "POST", cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
