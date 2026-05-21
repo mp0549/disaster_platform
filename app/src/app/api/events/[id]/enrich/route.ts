@@ -8,13 +8,13 @@ import type { EventDetail } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 const ACTIVE_TTL_MS = 15 * 60 * 1000; // 15 minutes
+const PARTIAL_RETRY_MS = 10 * 60 * 1000; // floor — don't slam upstream APIs on partial rows
 
 function isStale(row: Record<string, unknown> | null, status: string, force: boolean): boolean {
   if (force || !row) return true;
-  if (row.partial) return true;
-  if (status === "ACTIVE") {
-    return Date.now() - new Date(row.enriched_at as string).getTime() > ACTIVE_TTL_MS;
-  }
+  const age = Date.now() - new Date(row.enriched_at as string).getTime();
+  if (row.partial) return age > PARTIAL_RETRY_MS;
+  if (status === "ACTIVE") return age > ACTIVE_TTL_MS;
   return false; // CLOSED events never stale unless partial
 }
 
@@ -74,9 +74,10 @@ export async function POST(
 
     let groundedAiSummary: string | null = null;
     let groundedAiGeneratedAt: string | null = null;
+    let groundedRetryable = false;
 
     if (hasSources) {
-      groundedAiSummary = await generateGroundedSummary(
+      const result = await generateGroundedSummary(
         { title: event.title, type: event.type, severity: event.severity, country: event.country, lat: event.lat, lon: event.lon, description: event.description, startedAt: event.startedAt },
         {
           newsTitles: bundle.newsItems?.map((n) => n.title) ?? [],
@@ -84,7 +85,14 @@ export async function POST(
           reliefwebTitles: bundle.reliefwebReports?.map((r) => r.title) ?? [],
         }
       );
-      if (groundedAiSummary) groundedAiGeneratedAt = new Date().toISOString();
+      if (result.ok) {
+        groundedAiSummary = result.text;
+        groundedAiGeneratedAt = new Date().toISOString();
+      } else if (result.reason === "rate_limited" || result.reason === "error") {
+        // Retry on next request when quota window resets or transient errors clear
+        groundedRetryable = true;
+      }
+      // "no_key" is not retryable — saving with partial:false avoids infinite retries
     }
 
     const enrichedAt = new Date().toISOString();
@@ -99,7 +107,7 @@ export async function POST(
       grounded_ai_summary: groundedAiSummary,
       grounded_ai_generated_at: groundedAiGeneratedAt,
       enriched_at: enrichedAt,
-      partial: bundle.partial,
+      partial: bundle.partial || groundedRetryable,
     };
 
     const writer = supabaseWrite ?? supabase;

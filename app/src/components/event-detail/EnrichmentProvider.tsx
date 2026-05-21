@@ -17,12 +17,12 @@ export function useEnrichment() {
   return useContext(EnrichmentContext);
 }
 
+// Must match the server-side floors in /api/events/[id]/enrich/route.ts
 function needsRefresh(enrichment: EventEnrichment | null, status: string): boolean {
   if (!enrichment) return true;
-  if (enrichment.partial) return true;
-  if (status === "ACTIVE") {
-    return Date.now() - new Date(enrichment.enrichedAt).getTime() > 15 * 60 * 1000;
-  }
+  const age = Date.now() - new Date(enrichment.enrichedAt).getTime();
+  if (enrichment.partial) return age > 10 * 60 * 1000;
+  if (status === "ACTIVE") return age > 15 * 60 * 1000;
   return false;
 }
 

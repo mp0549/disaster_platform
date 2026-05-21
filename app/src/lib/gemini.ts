@@ -123,9 +123,9 @@ Started: ${event.startedAt}`;
 export async function generateGroundedSummary(
   event: EventContext,
   sources: GroundingSources
-): Promise<string | null> {
+): Promise<SummaryResult> {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) return { ok: false, reason: "no_key" };
 
   const sourceBlock = [
     ...sources.newsTitles.map((t, i) => `[${i + 1}] News: ${t}`),
@@ -160,12 +160,26 @@ ${sourceBlock || "No sources available — state that information is limited."}`
       signal: controller.signal,
     });
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      const body = await response.text();
+      console.error("Gemini grounded API error:", response.status, body);
+      if (response.status === 429) {
+        return { ok: false, reason: "rate_limited", retryAfterSeconds: parseRetryAfter(body) };
+      }
+      return { ok: false, reason: "error" };
+    }
     const data = await response.json();
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    return typeof text === "string" ? text.trim() : null;
-  } catch {
-    return null;
+    return typeof text === "string" && text.trim().length > 0
+      ? { ok: true, text: text.trim() }
+      : { ok: false, reason: "error" };
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === "AbortError") {
+      console.error("Gemini grounded API timeout after 8 seconds.");
+    } else {
+      console.error("Gemini grounded API error:", error);
+    }
+    return { ok: false, reason: "error" };
   } finally {
     clearTimeout(timeoutId);
   }
