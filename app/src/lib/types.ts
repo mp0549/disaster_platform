@@ -129,7 +129,7 @@ export interface MapSettings {
 
 export const DEFAULT_MAP_SETTINGS: MapSettings = {
   clustering: true,
-  zones: true,
+  zones: false,
 };
 
 // Weather (Open-Meteo)

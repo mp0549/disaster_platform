@@ -1,21 +1,24 @@
 import type { DisasterType, Severity, EventStatus, EventSource } from "@/lib/types";
-import { TYPE_COLORS, SEVERITY_COLORS, SOURCE_LABELS, TYPE_LABELS } from "@/lib/constants";
+import {
+  TYPE_COLORS, TYPE_LABELS, SOURCE_LABELS,
+  DOMAIN_RAMPS, TYPE_TO_DOMAIN, STATUS_BADGE_COLORS,
+} from "@/lib/constants";
 
-interface BadgeProps {
-  className?: string;
-}
+// Shared pill shape — callers can add className for extra spacing
+const BASE = "inline-flex items-center gap-1 rounded-full text-[11px] font-semibold tracking-wide px-2.5 py-0.5 border whitespace-nowrap";
+
+interface BadgeProps { className?: string }
 
 export function TypeBadge({ type, className = "" }: { type: DisasterType } & BadgeProps) {
   const color = TYPE_COLORS[type] || "#6b7280";
   const label = TYPE_LABELS[type] || type;
   return (
     <span
-      className={`badge ${className}`}
+      className={`${BASE} ${className}`}
       style={{
-        backgroundColor: `${color}20`,
+        backgroundColor: `${color}18`,
         color,
-        borderColor: `${color}40`,
-        border: "1px solid",
+        borderColor: `${color}35`,
       }}
     >
       {label}
@@ -23,53 +26,47 @@ export function TypeBadge({ type, className = "" }: { type: DisasterType } & Bad
   );
 }
 
-const SEVERITY_CLASSES: Record<Severity, { bg: string; text: string; border: string }> = {
-  LOW: { bg: "#22c55e20", text: "#22c55e", border: "#22c55e40" },
-  MODERATE: { bg: "#eab30820", text: "#ca8a04", border: "#eab30840" },
-  HIGH: { bg: "#f9731620", text: "#ea580c", border: "#f9731640" },
-  EXTREME: { bg: "#ef444420", text: "#dc2626", border: "#ef444440" },
-};
-
 export function SeverityBadge({ severity, className = "" }: { severity: Severity | null } & BadgeProps) {
   if (!severity) {
     return (
       <span
-        className={`badge ${className}`}
-        style={{ backgroundColor: "#6b728020", color: "#6b7280", border: "1px solid #6b728040" }}
+        className={`${BASE} ${className}`}
+        style={{ backgroundColor: "#6b728012", color: "#6b7280", borderColor: "#6b728025" }}
       >
         Unknown
       </span>
     );
   }
-  const s = SEVERITY_CLASSES[severity];
+  // Severity uses amber tint — size/opacity encoding only (per GRIP rule 2)
+  const ramp = DOMAIN_RAMPS.natural;
   return (
     <span
-      className={`badge ${className}`}
-      style={{ backgroundColor: s.bg, color: s.text, border: `1px solid ${s.border}` }}
+      className={`${BASE} ${className}`}
+      style={{
+        backgroundColor: ramp[50],
+        color: ramp[800],
+        borderColor: `${ramp[600]}40`,
+      }}
     >
-      {severity}
+      {severity.charAt(0) + severity.slice(1).toLowerCase()}
     </span>
   );
 }
 
-const STATUS_STYLES: Record<EventStatus, { bg: string; text: string; border: string; dot: string }> = {
-  ACTIVE: { bg: "#22c55e15", text: "#22c55e", border: "#22c55e30", dot: "#22c55e" },
-  CLOSED: { bg: "#6b728015", text: "#9ca3af", border: "#6b728030", dot: "#6b7280" },
-  UNKNOWN: { bg: "#3b82f615", text: "#60a5fa", border: "#3b82f630", dot: "#3b82f6" },
-};
-
 export function StatusBadge({ status, className = "" }: { status: EventStatus } & BadgeProps) {
-  const s = STATUS_STYLES[status] || STATUS_STYLES.UNKNOWN;
+  const s = STATUS_BADGE_COLORS[status] ?? STATUS_BADGE_COLORS.UNKNOWN;
+  const dotColor = status === "ACTIVE" ? "#EF9F27" : status === "CLOSED" ? "#9ca3af" : "#AFA9EC";
   return (
     <span
-      className={`badge ${className}`}
-      style={{ backgroundColor: s.bg, color: s.text, border: `1px solid ${s.border}` }}
+      className={`${BASE} ${className}`}
+      style={{
+        backgroundColor: s.bg,
+        color: s.text,
+        borderColor: `${s.text}30`,
+      }}
     >
-      <span
-        className="inline-block w-1.5 h-1.5 rounded-full"
-        style={{ backgroundColor: s.dot }}
-      />
-      {status}
+      <span className="inline-block w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: dotColor }} />
+      {status.charAt(0) + status.slice(1).toLowerCase()}
     </span>
   );
 }
@@ -78,10 +75,24 @@ export function SourceBadge({ source, className = "" }: { source: EventSource } 
   const label = SOURCE_LABELS[source] || source;
   return (
     <span
-      className={`badge ${className}`}
-      style={{ backgroundColor: "#6b728015", color: "#9ca3af", border: "1px solid #6b728030" }}
+      className={`${BASE} ${className}`}
+      style={{ backgroundColor: "rgba(107,114,128,0.08)", color: "#9ca3af", borderColor: "rgba(107,114,128,0.18)" }}
     >
       {label}
+    </span>
+  );
+}
+
+/** Domain-tinted badge for use on event detail pages */
+export function DomainBadge({ type, className = "" }: { type: string } & BadgeProps) {
+  const domain = TYPE_TO_DOMAIN[type] ?? "infra";
+  const ramp = DOMAIN_RAMPS[domain];
+  return (
+    <span
+      className={`${BASE} ${className}`}
+      style={{ backgroundColor: ramp[50], color: ramp[800], borderColor: `${ramp[600]}40` }}
+    >
+      {domain.charAt(0).toUpperCase() + domain.slice(1)}
     </span>
   );
 }

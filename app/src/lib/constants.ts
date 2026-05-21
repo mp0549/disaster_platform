@@ -92,6 +92,44 @@ export const DEFAULT_FILTERS = {
 
 export const ALL_SEVERITIES: Severity[] = ["LOW", "MODERATE", "HIGH", "EXTREME"];
 
+// ─── GRIP Domain System ────────────────────────────────────────────────────
+
+/** Four-stop ramp per domain (mirrors tailwind.config grip.*) */
+export const DOMAIN_RAMPS = {
+  natural:    { 50: "#FAEEDA", 400: "#EF9F27", 600: "#BA7517", 800: "#633806" },
+  biological: { 50: "#EAF3DE", 400: "#97C459", 600: "#3B6D11", 800: "#173404" },
+  tech:       { 50: "#FAECE7", 400: "#F0997B", 600: "#993C1D", 800: "#4A1B0C" },
+  geo:        { 50: "#EEEDFE", 400: "#AFA9EC", 600: "#534AB7", 800: "#26215C" },
+  cyber:      { 50: "#E1F5EE", 400: "#5DCAA5", 600: "#0F6E56", 800: "#04342C" },
+  infra:      { 50: "#E6F1FB", 400: "#85B7EB", 600: "#185FA5", 800: "#042C53" },
+} as const;
+
+/** All current disaster types are Natural domain; OTHER maps to infra. */
+export const TYPE_TO_DOMAIN: Record<string, keyof typeof DOMAIN_RAMPS> = {
+  EARTHQUAKE: "natural",
+  VOLCANO: "natural",
+  WILDFIRE: "natural",
+  FLOOD: "natural",
+  STORM: "natural",
+  DROUGHT: "natural",
+  OTHER: "infra",
+};
+
+/** GRIP-canonical status badge colors (fixed; do not derive from domain ramp). */
+export const STATUS_BADGE_COLORS: Record<string, { bg: string; text: string }> = {
+  ACTIVE:   { bg: "#FAEEDA", text: "#BA7517" },
+  CLOSED:   { bg: "#F1EFE8", text: "#5F5E5A" },
+  UNKNOWN:  { bg: "#EEEDFE", text: "#534AB7" },
+};
+
+/** Severity opacity per GRIP encoding rule 2 (size/opacity only — never hue). */
+export const SEVERITY_OPACITY: Record<string, number> = {
+  LOW: 0.40,
+  MODERATE: 0.70,
+  HIGH: 0.90,
+  EXTREME: 1.00,
+};
+
 export const ALL_SOURCES: EventSource[] = [
   "USGS",
   "EONET",

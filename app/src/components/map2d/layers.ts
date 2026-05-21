@@ -1,6 +1,7 @@
 import type { Map as MaplibreMap, GeoJSONSource, MapMouseEvent } from "maplibre-gl";
 import type { EventSummary } from "@/lib/types";
 import { TYPE_COLORS, TYPE_EMOJI, TYPE_LABELS, SEVERITY_COLORS } from "@/lib/constants";
+import { toIndividualFeature } from "./clustering";
 
 export const SEVERITY_RADII: Record<string, number> = {
   LOW: 5,
@@ -9,54 +10,41 @@ export const SEVERITY_RADII: Record<string, number> = {
   EXTREME: 14,
 };
 
-const CLUSTER_MAX_ZOOM = 5;
-const CLUSTER_RADIUS = 50;
-
-export function buildGeoJSON(events: EventSummary[]) {
-  return {
-    type: "FeatureCollection" as const,
-    features: events.map((e) => ({
-      type: "Feature" as const,
-      geometry: { type: "Point" as const, coordinates: [e.lon, e.lat] },
-      properties: {
-        id: e.id,
-        type: e.type,
-        severity: e.severity ?? "MODERATE",
-        title: e.title,
-        country: e.country ?? "",
-      },
-    })),
-  };
-}
-
-// Build a MapLibre `match` expression array from a plain Record.
-// MapLibre's expression types are intentionally loose, so callers cast at the use site.
+// Build a MapLibre `match` expression from a plain Record.
 function matchExpr(property: string, map: Record<string, unknown>, fallback: unknown) {
   const expr: unknown[] = ["match", ["get", property]];
-  for (const [key, value] of Object.entries(map)) {
-    expr.push(key, value);
-  }
+  for (const [key, value] of Object.entries(map)) expr.push(key, value);
   expr.push(fallback);
   return expr;
 }
 
-const NOT_CLUSTER_FILTER = ["!", ["has", "point_count"]] as never;
+// Properties with cluster=true are synthetic cluster aggregations.
+// Individual event features always have cluster=false (or absent pre-clustering).
+const CLUSTER_FILTER = ["==", ["get", "cluster"], true] as never;
+const NOT_CLUSTER_FILTER = ["!=", ["get", "cluster"], true] as never;
+
+export function buildGeoJSON(events: EventSummary[]) {
+  return {
+    type: "FeatureCollection" as const,
+    features: events.map(toIndividualFeature),
+  };
+}
 
 export interface EventLayersHandle {
   remove: () => void;
 }
 
 /**
- * Set up the events source + all rendering layers. Returns a handle whose
- * `remove()` tears everything down so callers can rebuild with new options
- * (e.g. when the user toggles clustering at runtime).
+ * Set up the events source + all rendering layers. Clustering is done
+ * client-side (see clustering.ts); this function just wires up the MapLibre
+ * layers that consume the pre-processed GeoJSON.
  *
  * Layers added:
- *  - events-clusters       (only if clustering on) — circle bubble for grouped points
- *  - events-cluster-count  (only if clustering on) — point-count label
- *  - events-halo           — soft glow behind each unclustered point
- *  - events-pulse          — animated ring on EXTREME unclustered points (caller animates)
- *  - events-main           — main marker circle for each unclustered point
+ *  - events-clusters       (only if clustering on) — colored circle per cluster
+ *  - events-cluster-count  (only if clustering on) — count label
+ *  - events-halo           — soft glow behind each individual point
+ *  - events-pulse          — animated ring on EXTREME individual points
+ *  - events-main           — main marker circle for each individual point
  */
 export function setupEventLayers(
   map: MaplibreMap,
@@ -65,27 +53,14 @@ export function setupEventLayers(
   map.addSource("events", {
     type: "geojson",
     data: { type: "FeatureCollection", features: [] },
-    cluster: options.clustering,
-    clusterMaxZoom: CLUSTER_MAX_ZOOM,
-    clusterRadius: CLUSTER_RADIUS,
   });
 
-  // Click a cluster → zoom to the level at which it expands. Bound only when
-  // clustering is on so toggling off cleanly detaches it.
   const onClusterClick = (e: MapMouseEvent) => {
     const features = map.queryRenderedFeatures(e.point, { layers: ["events-clusters"] });
     const feature = features[0];
     if (!feature) return;
-    const clusterId = feature.properties?.cluster_id as number | undefined;
-    if (clusterId === undefined) return;
-
-    const source = map.getSource("events") as GeoJSONSource;
-    source.getClusterExpansionZoom(clusterId).then((zoom) => {
-      const coords = (feature.geometry as GeoJSON.Point).coordinates as [number, number];
-      map.easeTo({ center: coords, zoom });
-    }).catch(() => {
-      // Cluster may have expired between hover and click — ignore
-    });
+    const coords = (feature.geometry as GeoJSON.Point).coordinates as [number, number];
+    map.easeTo({ center: coords, zoom: map.getZoom() + 2 });
   };
 
   if (options.clustering) {
@@ -93,20 +68,21 @@ export function setupEventLayers(
       id: "events-clusters",
       type: "circle",
       source: "events",
-      filter: ["has", "point_count"],
+      filter: CLUSTER_FILTER,
       paint: {
-        "circle-color": "rgba(59, 130, 246, 0.32)",
-        "circle-stroke-color": "rgba(59, 130, 246, 0.75)",
+        // Clusters are colored by their disaster type — no more generic blue
+        "circle-color": matchExpr("clusterType", TYPE_COLORS, "#6b7280") as never,
+        "circle-opacity": 0.4,
+        "circle-stroke-color": matchExpr("clusterType", TYPE_COLORS, "#9ca3af") as never,
         "circle-stroke-width": 1.5,
-        // Larger bubbles for bigger clusters
+        "circle-stroke-opacity": 0.85,
         "circle-radius": [
-          "step",
-          ["get", "point_count"],
-          16,  // < 10 points
-          10, 22, // 10+ → 22
-          50, 28, // 50+ → 28
-          200, 36, // 200+ → 36
-        ],
+          "step", ["get", "clusterCount"],
+          16,      // < 5
+          5,  20,  // 5+
+          20, 26,  // 20+
+          100, 32, // 100+
+        ] as never,
       },
     });
 
@@ -114,16 +90,16 @@ export function setupEventLayers(
       id: "events-cluster-count",
       type: "symbol",
       source: "events",
-      filter: ["has", "point_count"],
+      filter: CLUSTER_FILTER,
       layout: {
-        "text-field": ["get", "point_count_abbreviated"],
+        "text-field": ["get", "clusterCount"],
         "text-font": ["Noto Sans Bold"],
-        "text-size": 12,
+        "text-size": 11,
         "text-allow-overlap": true,
       },
       paint: {
         "text-color": "#ffffff",
-        "text-halo-color": "rgba(10, 10, 20, 0.6)",
+        "text-halo-color": "rgba(10, 10, 20, 0.7)",
         "text-halo-width": 1,
       },
     });
@@ -191,7 +167,6 @@ export function setupEventLayers(
       if (options.clustering) {
         map.off("click", "events-clusters", onClusterClick);
       }
-      // Layers removed in reverse order so dependent layers go first
       const layerIds = [
         "events-main",
         "events-pulse",
@@ -237,11 +212,6 @@ export interface ZoneLayersHandle {
   remove: () => void;
 }
 
-/**
- * Add a separate source + fill/line layers for events with polygon geometry.
- * Placed below the point layers so markers still sit on top. Visibility is
- * toggled via `setVisible(boolean)` — no rebuild needed.
- */
 export function setupZoneLayers(map: MaplibreMap, options: { visible: boolean }): ZoneLayersHandle {
   map.addSource("events-zones", {
     type: "geojson",
@@ -249,8 +219,6 @@ export function setupZoneLayers(map: MaplibreMap, options: { visible: boolean })
   });
 
   const initialVisibility = options.visible ? "visible" : "none";
-
-  // Find the first event point layer to insert zones beneath it
   const beforeId = ["events-halo", "events-clusters", "events-main"].find((id) => map.getLayer(id));
 
   map.addLayer(

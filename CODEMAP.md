@@ -13,6 +13,7 @@ Conventions:
 
 - `CLAUDE.md` — project context for Claude. Stack, env vars, key files, architecture gotchas, roadmap, session log.
 - `REFERENCES.md` — competitive landscape + canonical disaster-type taxonomy decisions.
+- `COLORS_THEME.md` — canonical color & visual design system: domain ramps, severity encoding, globe marker spec, status animations, badge rules, dark mode, encoding invariants.
 - `CODEMAP.md` — this file.
 - `vercel.json` — Vercel build config (buildCommand, framework).
 

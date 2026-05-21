@@ -13,17 +13,19 @@ interface EventMapProps {
 
 export default function EventMap({ lat, lon, title, geometry }: EventMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<unknown>(null);
+  const mapInstanceRef = useRef<import("leaflet").Map | null>(null);
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    let map: import("leaflet").Map;
+    let cancelled = false;
 
     async function init() {
       const L = (await import("leaflet")).default;
 
-      // Fix default marker icon paths broken by webpack
+      // Bail out if cleanup already ran while we were awaiting the import
+      if (cancelled || !mapRef.current) return;
+
       delete (L.Icon.Default.prototype as { _getIconUrl?: unknown })._getIconUrl;
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -31,12 +33,14 @@ export default function EventMap({ lat, lon, title, geometry }: EventMapProps) {
         shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
       });
 
-      map = L.map(mapRef.current!, {
+      const map = L.map(mapRef.current, {
         center: [lat, lon],
         zoom: 7,
         zoomControl: true,
         attributionControl: true,
       });
+
+      if (cancelled) { map.remove(); return; }
 
       L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
         attribution:
@@ -50,10 +54,10 @@ export default function EventMap({ lat, lon, title, geometry }: EventMapProps) {
         className: "",
         html: `<div style="
           width: 14px; height: 14px;
-          background: #ef4444;
+          background: #EF9F27;
           border: 2px solid #ffffff;
           border-radius: 50%;
-          box-shadow: 0 0 0 3px rgba(239,68,68,0.3), 0 2px 8px rgba(0,0,0,0.4);
+          box-shadow: 0 0 0 3px rgba(239,159,39,0.3), 0 2px 8px rgba(0,0,0,0.4);
         "></div>`,
         iconSize: [14, 14],
         iconAnchor: [7, 7],
@@ -67,9 +71,9 @@ export default function EventMap({ lat, lon, title, geometry }: EventMapProps) {
         try {
           const geoLayer = L.geoJSON(geometry as GeoJSON.GeoJSON, {
             style: {
-              color: "#3b82f6",
+              color: "#EF9F27",
               weight: 2,
-              fillColor: "#3b82f6",
+              fillColor: "#EF9F27",
               fillOpacity: 0.12,
               opacity: 0.7,
             },
@@ -88,12 +92,14 @@ export default function EventMap({ lat, lon, title, geometry }: EventMapProps) {
     init();
 
     return () => {
-      if (map) {
-        map.remove();
+      cancelled = true;
+      const m = mapInstanceRef.current;
+      if (m) {
+        m.remove();
         mapInstanceRef.current = null;
       }
     };
-  }, [lat, lon, title, geometry]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div>

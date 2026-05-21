@@ -1,60 +1,60 @@
 "use client";
 
-import { ALL_SEVERITIES, SEVERITY_COLORS } from "@/lib/constants";
+import { ALL_SEVERITIES } from "@/lib/constants";
 import type { Severity } from "@/lib/types";
+
+// Severity = opacity encoding only, amber tint (GRIP rule 2 — never change hue)
+const SEVERITY_OPACITY: Record<Severity, number> = {
+  LOW: 0.40, MODERATE: 0.70, HIGH: 0.90, EXTREME: 1.00,
+};
 
 interface SeverityFilterProps {
   selected: Severity | null;
   onChange: (severity: Severity | null) => void;
 }
 
+function OpacityDot({ opacity, pulse }: { opacity: number; pulse?: boolean }) {
+  return (
+    <span
+      className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${pulse ? "animate-pulse" : ""}`}
+      style={{ backgroundColor: `rgba(239,159,39,${opacity})` }}
+    />
+  );
+}
+
 export default function SeverityFilter({ selected, onChange }: SeverityFilterProps) {
   return (
     <div>
-      <span className="label-mono block mb-2">Severity</span>
-      <div className="flex flex-col gap-0.5">
+      <span className="label-mono block mb-1.5">Severity</span>
+
+      <div className="flex gap-1">
         <button
           onClick={() => onChange(null)}
-          className={`flex items-center gap-2.5 px-2 py-1.5 rounded-md text-left transition-all duration-150 interactive ${
-            selected === null ? "bg-white/5" : "opacity-40 hover:opacity-70"
+          className={`flex-1 py-1 rounded-md text-[10px] font-semibold tracking-wide transition-all duration-150 interactive ${
+            selected === null
+              ? "bg-[#FAEEDA]/15 text-[#EF9F27] border border-[#EF9F27]/30"
+              : "bg-white/5 text-dark-muted hover:bg-white/8 border border-transparent"
           }`}
         >
-          <span
-            className="w-2 h-2 rounded-full shrink-0"
-            style={{ backgroundColor: selected === null ? "#9ca3af" : "#4b5563" }}
-          />
-          <span
-            className="text-[12px] font-medium"
-            style={{ color: selected === null ? "#e5e5e5" : "#6b7280" }}
-          >
-            All
-          </span>
+          All
         </button>
 
         {ALL_SEVERITIES.map((sev) => {
           const isActive = selected === sev;
-          const color = SEVERITY_COLORS[sev];
+          const opacity = SEVERITY_OPACITY[sev];
           return (
             <button
               key={sev}
               onClick={() => onChange(isActive ? null : sev)}
-              className={`flex items-center gap-2.5 px-2 py-1.5 rounded-md text-left transition-all duration-150 interactive ${
-                isActive ? "bg-white/5" : "opacity-40 hover:opacity-70"
+              className={`flex-1 flex items-center justify-center gap-1 py-1 rounded-md text-[10px] font-semibold tracking-wide transition-all duration-150 interactive border ${
+                isActive
+                  ? "bg-[#FAEEDA]/15 text-[#EF9F27] border-[#EF9F27]/30"
+                  : "bg-white/5 text-dark-muted hover:bg-white/8 border-transparent"
               }`}
             >
-              <span
-                className="w-2 h-2 rounded-full shrink-0"
-                style={{
-                  backgroundColor: isActive ? color : "#4b5563",
-                  boxShadow: isActive ? `0 0 6px ${color}60` : "none",
-                }}
-              />
-              <span
-                className="text-[12px] font-medium"
-                style={{ color: isActive ? "#e5e5e5" : "#6b7280" }}
-              >
-                {sev.charAt(0) + sev.slice(1).toLowerCase()}
-              </span>
+              <OpacityDot opacity={opacity} pulse={sev === "EXTREME" && isActive} />
+              <span className="hidden sm:inline">{sev.charAt(0) + sev.slice(1).toLowerCase()}</span>
+              <span className="sm:hidden">{sev[0]}</span>
             </button>
           );
         })}

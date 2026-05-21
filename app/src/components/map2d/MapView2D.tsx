@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { Map as MaplibreMap, GeoJSONSource } from "maplibre-gl";
 import type { EventSummary, MapSettings } from "@/lib/types";
@@ -15,13 +15,17 @@ import {
   type EventLayersHandle,
   type ZoneLayersHandle,
 } from "./layers";
+import { buildClusteredGeoJSON } from "./clustering";
 
-// CSS import lives here so it only loads when this component is actually used
 import "maplibre-gl/dist/maplibre-gl.css";
 
 interface MapView2DProps {
   events: EventSummary[];
   settings: MapSettings;
+}
+
+function getSourceData(events: EventSummary[], clustering: boolean, zoom: number) {
+  return clustering ? buildClusteredGeoJSON(events, zoom) : buildGeoJSON(events);
 }
 
 export default function MapView2D({ events, settings }: MapView2DProps) {
@@ -30,16 +34,15 @@ export default function MapView2D({ events, settings }: MapView2DProps) {
   const isLoadedRef = useRef(false);
   const pulseRafRef = useRef<number>(0);
   const eventsRef = useRef(events);
+  const settingsRef = useRef(settings);
+  const zoomRef = useRef(INITIAL_VIEW.zoom);
   const layersHandleRef = useRef<EventLayersHandle | null>(null);
   const zonesHandleRef = useRef<ZoneLayersHandle | null>(null);
   const router = useRouter();
 
-  // Keep eventsRef current so closures use the latest data
   eventsRef.current = events;
+  settingsRef.current = settings;
 
-  const geoJSON = useMemo(() => buildGeoJSON(events), [events]);
-
-  // Initialize map once on mount; destroy on unmount
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
@@ -66,8 +69,6 @@ export default function MapView2D({ events, settings }: MapView2DProps) {
       map.on("load", () => {
         applyDarkTheme(map as unknown as MaplibreMap);
 
-        // Atmospheric horizon for the tilted view. MapLibre 5's setSky replaces
-        // Mapbox's setFog and the legacy `type: "sky"` layer (neither exist here).
         map.setSky({
           "sky-color": "rgb(8, 12, 30)",
           "sky-horizon-blend": 0.6,
@@ -79,17 +80,31 @@ export default function MapView2D({ events, settings }: MapView2DProps) {
         });
 
         layersHandleRef.current = setupEventLayers(map as unknown as MaplibreMap, {
-          clustering: settings.clustering,
+          clustering: settingsRef.current.clustering,
         });
         zonesHandleRef.current = setupZoneLayers(map as unknown as MaplibreMap, {
-          visible: settings.zones,
+          visible: settingsRef.current.zones,
         });
         isLoadedRef.current = true;
 
-        // Populate with current events
         const source = map.getSource("events") as GeoJSONSource;
-        if (source) source.setData(buildGeoJSON(eventsRef.current));
+        if (source) {
+          source.setData(getSourceData(eventsRef.current, settingsRef.current.clustering, zoomRef.current));
+        }
         zonesHandleRef.current?.setData(eventsRef.current);
+
+        // Re-cluster when integer zoom level changes (only matters when clustering on)
+        let lastZoomLevel = Math.floor(INITIAL_VIEW.zoom);
+        map.on("zoom", () => {
+          const z = map.getZoom();
+          zoomRef.current = z;
+          const zLevel = Math.floor(z);
+          if (zLevel !== lastZoomLevel && settingsRef.current.clustering) {
+            lastZoomLevel = zLevel;
+            const src = map.getSource("events") as GeoJSONSource;
+            if (src) src.setData(buildClusteredGeoJSON(eventsRef.current, z));
+          }
+        });
 
         // Pulse animation — sine-driven radius on EXTREME ring
         let pulseT = 0;
@@ -105,15 +120,12 @@ export default function MapView2D({ events, settings }: MapView2DProps) {
         }
         animatePulse();
 
-        // Click → event detail page. Bound to layer id, persists across layer
-        // recreations (we re-add the same id when toggling clustering).
         map.on("click", "events-main", (e) => {
           const feature = e.features?.[0];
           const id = feature?.properties?.id as string | undefined;
           if (id) router.push(`/events/${id}`);
         });
 
-        // Hover popup
         const popup = new maplibregl.Popup({
           closeButton: false,
           closeOnClick: false,
@@ -161,9 +173,7 @@ export default function MapView2D({ events, settings }: MapView2DProps) {
     return () => localCleanup?.();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Rebuild source + layers when clustering toggles. The events click handler is
-  // bound to the layer id and persists; only the cluster-specific handlers in
-  // setupEventLayers get re-registered.
+  // Rebuild source + layers when clustering toggles
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !isLoadedRef.current || !layersHandleRef.current) return;
@@ -172,21 +182,21 @@ export default function MapView2D({ events, settings }: MapView2DProps) {
     layersHandleRef.current = setupEventLayers(map, { clustering: settings.clustering });
 
     const source = map.getSource("events") as GeoJSONSource;
-    if (source) source.setData(buildGeoJSON(eventsRef.current));
+    if (source) source.setData(getSourceData(eventsRef.current, settings.clustering, zoomRef.current));
   }, [settings.clustering]);
 
-  // Cheap visibility toggle for zone layers — no rebuild
+  // Cheap visibility toggle for zone layers
   useEffect(() => {
     zonesHandleRef.current?.setVisible(settings.zones);
   }, [settings.zones]);
 
-  // Sync events data whenever the filtered set changes (both points + zones)
+  // Sync events data — re-cluster if enabled
   useEffect(() => {
     if (!mapRef.current || !isLoadedRef.current) return;
     const source = mapRef.current.getSource("events") as GeoJSONSource;
-    if (source) source.setData(geoJSON);
+    if (source) source.setData(getSourceData(events, settings.clustering, zoomRef.current));
     zonesHandleRef.current?.setData(events);
-  }, [geoJSON, events]);
+  }, [events, settings.clustering]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <div ref={containerRef} className="w-full h-full bg-dark-bg" />;
 }
