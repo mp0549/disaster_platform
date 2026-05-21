@@ -43,7 +43,8 @@ Conventions:
 - `app/src/app/api/events/[id]/route.ts` — single event fetch (used by `useEventDetail` SWR hook).
 - `app/src/app/api/events/[id]/updates/route.ts` — event_updates timeline for an event.
 - `app/src/app/api/events/[id]/enrich/route.ts` — POST enrichment endpoint. Freshness check (ACTIVE 15min/CLOSED never). Orchestrates news+wiki+reliefweb+similar, grounds Gemini summary, upserts `event_enrichment`.
-- `app/src/app/api/events/[id]/summarize/route.ts` — Gemini summary endpoint; caches into `events.ai_summary`.
+- `app/src/app/api/events/[id]/summarize/route.ts` — Gemini summary endpoint; caches into `events.ai_summary`. Returns `{reason, retryAfterSeconds}` on 429/no-key/error.
+- `app/src/app/api/cron/summarize-pending/route.ts` — Vercel cron (`*/15 * * * *`). Pre-warms `ai_summary` in batches of 5. Bails on first 429 to preserve quota. Authed via `CRON_SECRET`.
 - `app/src/app/api/sources/route.ts` — `source_status` table dump for the monitor and any external watcher.
 - `app/src/app/api/stats/route.ts` — aggregate counts (totals, by-type, by-severity, by-source).
 - `app/src/app/api/debug/route.ts` — env-vars + sample-query echo for diagnostics.

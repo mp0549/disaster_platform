@@ -31,8 +31,7 @@ export async function POST(
       });
     }
 
-    // Generate new summary
-    const summary = await generateEventSummary({
+    const result = await generateEventSummary({
       title: event.title,
       type: event.type,
       severity: event.severity,
@@ -43,20 +42,26 @@ export async function POST(
       startedAt: event.started_at,
     });
 
-    if (!summary) {
-      // Gemini key absent or timed out — not a service failure, just unavailable
-      return NextResponse.json({ aiSummary: null, cached: false });
+    if (!result.ok) {
+      return NextResponse.json({
+        aiSummary: null,
+        aiSummaryGeneratedAt: null,
+        cached: false,
+        reason: result.reason,
+        retryAfterSeconds:
+          result.reason === "rate_limited" ? result.retryAfterSeconds : null,
+      });
     }
 
     const generatedAt = new Date().toISOString();
 
     await (supabaseWrite ?? supabase)
       .from("events")
-      .update({ ai_summary: summary, ai_summary_generated_at: generatedAt })
+      .update({ ai_summary: result.text, ai_summary_generated_at: generatedAt })
       .eq("id", id);
 
     return NextResponse.json({
-      aiSummary: summary,
+      aiSummary: result.text,
       aiSummaryGeneratedAt: generatedAt,
       cached: false,
     });

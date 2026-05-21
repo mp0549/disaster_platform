@@ -105,6 +105,9 @@ export interface SummarizeResponse {
   aiSummary: string | null;
   aiSummaryGeneratedAt: string | null;
   cached: boolean;
+  // Populated when aiSummary is null and the cause is meaningful to the UI
+  reason?: "rate_limited" | "no_key" | "error";
+  retryAfterSeconds?: number | null;
 }
 
 export interface SourceStatus {

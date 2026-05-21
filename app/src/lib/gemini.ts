@@ -21,10 +21,43 @@ interface EventContext {
   startedAt: string;
 }
 
-export async function generateEventSummary(event: EventContext): Promise<string | null> {
+export type SummaryResult =
+  | { ok: true; text: string }
+  | { ok: false; reason: "rate_limited"; retryAfterSeconds: number | null }
+  | { ok: false; reason: "no_key" }
+  | { ok: false; reason: "error" };
+
+// Parses Google's RPC-style retry hint: details[].retryDelay = "37s" / "PT24H" / "1.5s"
+function parseRetryAfter(body: string): number | null {
+  try {
+    const parsed = JSON.parse(body);
+    const details = parsed?.error?.details;
+    if (!Array.isArray(details)) return null;
+    for (const d of details) {
+      const delay: unknown = d?.retryDelay;
+      if (typeof delay !== "string") continue;
+      // ISO 8601 duration "PT24H" / "PT15M" / "PT3.5S"
+      const iso = delay.match(/^PT(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?$/);
+      if (iso) {
+        const h = parseFloat(iso[1] ?? "0");
+        const m = parseFloat(iso[2] ?? "0");
+        const s = parseFloat(iso[3] ?? "0");
+        return Math.round(h * 3600 + m * 60 + s);
+      }
+      // Bare "37s"
+      const bare = delay.match(/^(\d+(?:\.\d+)?)s$/);
+      if (bare) return Math.round(parseFloat(bare[1]));
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function generateEventSummary(event: EventContext): Promise<SummaryResult> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return null;
+    return { ok: false, reason: "no_key" };
   }
 
   const prompt = `You are a disaster intelligence analyst. Given the following disaster event data, write exactly 3 concise sentences summarizing the situation, potential impact, and recommended awareness level. Be factual and specific.
@@ -36,7 +69,7 @@ Location: ${event.country ?? "Unknown"} (${event.lat.toFixed(4)}, ${event.lon.to
 Description: ${event.description ?? "No description available"}
 Started: ${event.startedAt}`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`;
 
   // 8-second abort controller — required to stay under Vercel's 10s hard limit
   const controller = new AbortController();
@@ -62,20 +95,26 @@ Started: ${event.startedAt}`;
     });
 
     if (!response.ok) {
-      console.error("Gemini API error:", response.status, await response.text());
-      return null;
+      const body = await response.text();
+      console.error("Gemini API error:", response.status, body);
+      if (response.status === 429) {
+        return { ok: false, reason: "rate_limited", retryAfterSeconds: parseRetryAfter(body) };
+      }
+      return { ok: false, reason: "error" };
     }
 
     const data = await response.json();
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    return typeof text === "string" ? text.trim() : null;
+    return typeof text === "string" && text.trim().length > 0
+      ? { ok: true, text: text.trim() }
+      : { ok: false, reason: "error" };
   } catch (error: unknown) {
     if (error instanceof Error && error.name === "AbortError") {
       console.error("Gemini API timeout after 8 seconds.");
     } else {
       console.error("Gemini API error:", error);
     }
-    return null;
+    return { ok: false, reason: "error" };
   } finally {
     clearTimeout(timeoutId);
   }
@@ -105,7 +144,7 @@ Started: ${event.startedAt}
 Sources:
 ${sourceBlock || "No sources available — state that information is limited."}`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 8000);
