@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { DOMAIN_RAMPS, TYPE_TO_DOMAIN, TYPE_LABELS, SOURCE_LABELS } from "@/lib/constants";
+import { DOMAIN_RAMPS, TYPE_TO_DOMAIN, TYPE_LABELS, TYPE_EMOJI, SOURCE_LABELS } from "@/lib/constants";
 import type { EventDetail } from "@/lib/types";
 
 interface EventHeaderProps {
@@ -26,10 +26,24 @@ export default function EventHeader({ event }: EventHeaderProps) {
   ];
 
   return (
-    <div className="border-b border-light-border pb-10">
+    <div className="relative border-b border-light-border pb-8 overflow-hidden">
+      {/* Gradient wash */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: `linear-gradient(135deg, ${ramp[50]} 0%, transparent 60%)`, opacity: 0.5 }}
+        aria-hidden="true"
+      />
+      {/* Faint emoji watermark */}
+      <div
+        className="absolute bottom-0 right-6 text-[120px] opacity-[0.07] pointer-events-none select-none leading-none"
+        aria-hidden="true"
+      >
+        {TYPE_EMOJI[event.type]}
+      </div>
+
       <Link
         href="/"
-        className="inline-flex items-center gap-1.5 text-[12px] text-light-subtle hover:text-light-muted transition-colors duration-150 mb-8 group"
+        className="relative inline-flex items-center gap-1.5 text-[12px] text-light-subtle hover:text-light-muted transition-colors duration-150 mb-8 group"
       >
         <svg
           viewBox="0 0 16 16"
@@ -38,23 +52,23 @@ export default function EventHeader({ event }: EventHeaderProps) {
         >
           <path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
-        {TYPE_LABELS[event.type]}
+        {TYPE_EMOJI[event.type]} {TYPE_LABELS[event.type]} · Globe
       </Link>
 
       <h1
-        className="text-[38px] sm:text-[46px] font-bold leading-[1.04] text-light-strong mb-4 max-w-3xl"
+        className="relative text-[38px] sm:text-[46px] font-bold leading-[1.04] text-light-strong mb-4 max-w-3xl"
         style={{ letterSpacing: "-0.03em" }}
       >
         {event.title}
       </h1>
 
-      <p className="text-[12px] text-light-subtle mb-5 tracking-wide">
+      <p className="relative text-[12px] text-light-subtle mb-5 tracking-wide">
         {metaParts.join("  ·  ")}
       </p>
 
       {event.description && (
         <p
-          className="text-[14px] text-light-muted leading-relaxed max-w-2xl italic pl-4 border-l-[2px]"
+          className="relative text-[14px] text-light-muted leading-relaxed max-w-2xl italic pl-4 border-l-[2px]"
           style={{ borderColor: `${ramp[400]}55` }}
         >
           {event.description}
