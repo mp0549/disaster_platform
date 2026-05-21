@@ -18,3 +18,4 @@ class NormalizedEvent(BaseModel):
     region: Optional[str] = None
     started_at: datetime
     raw_data: dict[str, Any]
+    source_url: Optional[str] = None

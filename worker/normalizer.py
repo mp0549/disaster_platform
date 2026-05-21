@@ -361,7 +361,7 @@ def firms_confidence_to_severity(confidence: str | float) -> str:
 def map_ifrc_disaster_type(dtype_name: str) -> str:
     """Map IFRC GO dtype.name strings to DisasterType."""
     t = dtype_name.lower()
-    if "earthquake" in t or "seismic" in t or "tsunami" in t:
+    if "earthquake" in t or "seismic" in t:
         return "EARTHQUAKE"
     if "flood" in t:
         return "FLOOD"

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase-api";
+import { supabaseWrite } from "@/lib/supabase-write";
 import { generateEventSummary } from "@/lib/gemini";
 
 export const dynamic = "force-dynamic";
@@ -51,7 +52,7 @@ export async function POST(
 
     const generatedAt = new Date().toISOString();
 
-    await supabase
+    await (supabaseWrite ?? supabase)
       .from("events")
       .update({ ai_summary: summary, ai_summary_generated_at: generatedAt })
       .eq("id", id);

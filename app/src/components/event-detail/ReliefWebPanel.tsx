@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { fetchReliefWebReports } from "@/lib/reliefweb";
+import { useEnrichment } from "./EnrichmentProvider";
 import type { ReliefWebReport } from "@/lib/reliefweb";
 import EmptyState from "@/components/ui/EmptyState";
 import Skeleton from "@/components/ui/Skeleton";
@@ -31,19 +30,8 @@ function ExternalArrow() {
 }
 
 export default function ReliefWebPanel({ country, accentColor }: ReliefWebPanelProps) {
-  const [reports, setReports] = useState<ReliefWebReport[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    if (!country) {
-      setIsLoading(false);
-      return;
-    }
-    fetchReliefWebReports(country).then((data) => {
-      setReports(data);
-      setIsLoading(false);
-    });
-  }, [country]);
+  const { enrichment, isLoading } = useEnrichment();
+  const reports: ReliefWebReport[] = enrichment?.reliefwebReports ?? [];
 
   return (
     <div>

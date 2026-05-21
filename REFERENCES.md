@@ -15,9 +15,10 @@ A centralized ArcGIS Hub hosting NASA's geospatial data products for disaster
 response. Transforms Earth observation data into GIS formats (REST, WMS, KML)
 for emergency management workflows. Manually curated — not a live feed.
 
-### Disaster Taxonomy (use this as our canonical type list)
+### Disaster Taxonomy (NASA Portal's type list — informed our initial design)
 Cyclones, Earthquakes, Extreme Temperature, Floods, Landslides, Tornadoes,
 Volcanoes, Wildfires, Industrial/Technological Disasters
+(We collapsed this into 7 types — see Key Taxonomy Decisions at the bottom)
 
 ### UI Features
 - Extensive data layer library (damage proxy maps, flood extent, precipitation)
@@ -176,10 +177,38 @@ geospatial dashboards.
 
 ## Key Taxonomy Decisions (informed by reference tools)
 
-- **Canonical disaster types**: Earthquake, Wildfire, Flood, Storm, Volcano,
-  Drought, Cyclone, Tsunami, Landslide, Extreme Temperature, Other
-  (superset of all reference tools)
-- **Severity model**: Impact-based (Red/Orange/Green → Extreme/High/Moderate/Low)
-  following GDACS convention, not raw magnitude
-- **EONET note**: Does not track earthquakes — USGS is the authoritative
-  source for seismic data
+### Disaster types (what we ship)
+
+`EARTHQUAKE | WILDFIRE | FLOOD | STORM | VOLCANO | DROUGHT | OTHER`
+
+Seven types. Source mapping decisions:
+
+| Upstream concept | Maps to | Reasoning |
+|---|---|---|
+| GDACS TC (tropical cyclone) | STORM | No distinct cyclone data stream; all rotational systems are storms |
+| GDACS TS (tsunami) | OTHER | Rare; GDACS feed rarely produces these; a distinct TSUNAMI type would be mostly empty |
+| FEMA hurricane / typhoon | STORM | Same as above |
+| NOAA cyclone alerts | STORM | Same as above |
+| IFRC tsunami | OTHER | A tsunami is a secondary effect, not an earthquake; was incorrectly mapped to EARTHQUAKE — fixed |
+| EONET landslides | OTHER | No dedicated ingestor; volume too low for a dedicated type |
+| IFRC cold/heat wave | OTHER | NOAA does not currently emit extreme-temperature alerts as distinct events |
+| EONET snow / ice | OTHER | Not a disaster type in the GDACS or ReliefWeb sense |
+
+**Why not more types?** The reference tools (NASA Portal, GDACS) do track Cyclone, Tsunami,
+Landslide, and Extreme Temperature separately. We collapse them because:
+1. Our current ingestors don't produce a reliable volume of distinct events for them.
+2. Empty filter categories degrade the dashboard UX.
+3. The 7-type set covers >95% of the events in the DB.
+
+When a dedicated ingestor is added for any of these (e.g. a Pacific tsunami warning feed),
+add the enum value then.
+
+### Severity model
+
+Impact-based (Red/Orange/Green → Extreme/High/Moderate/Low) following GDACS convention,
+not raw physical magnitude. GDACS `alertlevel` maps directly: GREEN→LOW, ORANGE→MODERATE,
+RED→HIGH. USGS magnitude maps: <3.0→LOW, <5.0→MODERATE, <7.0→HIGH, ≥7.0→EXTREME.
+
+### EONET note
+
+Does not track earthquakes — USGS is the authoritative source for seismic data.

@@ -64,6 +64,9 @@ class EONETIngestor(BaseIngestor):
 
                 status = "CLOSED" if item.get("closed") else "ACTIVE"
 
+                eonet_sources = item.get("sources", [])
+                eonet_url = eonet_sources[0].get("url") if eonet_sources else None
+
                 events.append(NormalizedEvent(
                     external_id=item["id"],
                     source="EONET",
@@ -79,6 +82,7 @@ class EONETIngestor(BaseIngestor):
                     region=None,
                     started_at=started_at,
                     raw_data=item,
+                    source_url=eonet_url,
                 ))
             except Exception as e:
                 logger.warning("[EONET] Failed to normalize event %s: %s", item.get("id"), e)

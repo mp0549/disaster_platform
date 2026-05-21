@@ -86,6 +86,7 @@ class ReliefWebIngestor(BaseIngestor):
                     region=None,
                     started_at=started_at,
                     raw_data=fields,
+                    source_url=fields.get("url"),
                 ))
             except Exception as e:
                 logger.warning("[ReliefWeb] Failed to normalize report %s: %s", item.get("id"), e)

@@ -148,6 +148,14 @@ class GDACSIngestor(BaseIngestor):
                         except Exception:
                             pass
 
+                # Synthesize GDACS URL from guid (e.g. DR1016449 → eventtype=DR&eventid=1016449)
+                gdacs_url = None
+                if len(external_id) > 2 and external_id[:2].isalpha():
+                    gdacs_url = (
+                        f"https://www.gdacs.org/report.aspx"
+                        f"?eventid={external_id[2:]}&eventtype={external_id[:2]}"
+                    )
+
                 events.append(NormalizedEvent(
                     external_id=external_id,
                     source="GDACS",
@@ -163,6 +171,7 @@ class GDACSIngestor(BaseIngestor):
                     region=None,
                     started_at=started_at,
                     raw_data={"title": title, "guid": external_id, "description": description_raw},
+                    source_url=gdacs_url,
                 ))
             except Exception as e:
                 logger.warning("[GDACS] Failed to parse item: %s", e)

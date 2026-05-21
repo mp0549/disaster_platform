@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { triggerSummarize } from "@/lib/api";
+import { useEnrichment } from "./EnrichmentProvider";
 import { SkeletonText } from "@/components/ui/Skeleton";
 import SectionHeader from "@/components/ui/SectionHeader";
 import Card from "@/components/ui/Card";
@@ -26,12 +27,36 @@ function SparkleIcon() {
 }
 
 export default function AISummary({ eventId, initialSummary, initialGeneratedAt }: AISummaryProps) {
+  const { enrichment } = useEnrichment();
+
+  // Prefer grounded summary from enrichment if available and newer
+  const groundedSummary = enrichment?.groundedAiSummary ?? null;
+  const groundedAt = enrichment?.groundedAiGeneratedAt ?? null;
+  const enrichedAt = enrichment?.enrichedAt ?? null;
+
   const [summary, setSummary] = useState<string | null>(initialSummary ?? null);
   const [generatedAt, setGeneratedAt] = useState<string | null>(initialGeneratedAt ?? null);
   const [isLoading, setIsLoading] = useState(!initialSummary);
   const [error, setError] = useState(false);
 
+  // Use grounded summary when available
+  const displaySummary = groundedSummary ?? summary;
+  const displayGeneratedAt = groundedAt ?? generatedAt;
+
+  // Grounded summary is stale if enrichment ran but produced no grounded summary yet,
+  // or if the ungrounded summary is >24h old
+  const isStaleGrounded = enrichedAt && !groundedSummary;
+  const isStaleUngrounded = displayGeneratedAt
+    ? Date.now() - new Date(displayGeneratedAt).getTime() > 24 * 60 * 60 * 1000
+    : false;
+  const isStale = !!(isStaleGrounded || isStaleUngrounded);
+
   useEffect(() => {
+    // If grounded summary already exists from enrichment, skip the ungrounded fetch
+    if (groundedSummary) {
+      setIsLoading(false);
+      return;
+    }
     if (initialSummary) return;
 
     let cancelled = false;
@@ -56,11 +81,7 @@ export default function AISummary({ eventId, initialSummary, initialGeneratedAt 
     return () => {
       cancelled = true;
     };
-  }, [eventId, initialSummary]);
-
-  const isStale = generatedAt
-    ? Date.now() - new Date(generatedAt).getTime() > 24 * 60 * 60 * 1000
-    : false;
+  }, [eventId, initialSummary, groundedSummary]);
 
   return (
     <div>
@@ -73,12 +94,13 @@ export default function AISummary({ eventId, initialSummary, initialGeneratedAt 
           <p className="text-[13px] text-light-muted italic">
             Analysis unavailable. The AI service may be temporarily unreachable.
           </p>
-        ) : summary ? (
+        ) : displaySummary ? (
           <div>
-            <p className="text-[14px] text-sky-strong leading-relaxed">{summary}</p>
-            {generatedAt && (
+            <p className="text-[14px] text-sky-strong leading-relaxed">{displaySummary}</p>
+            {displayGeneratedAt && (
               <p className="text-[10px] text-sky-faint mt-3">
-                Generated {new Date(generatedAt).toLocaleString()}
+                Generated {new Date(displayGeneratedAt).toLocaleString()}
+                {groundedSummary && <span className="ml-1 opacity-70">· grounded</span>}
               </p>
             )}
             {isStale && (

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { supabase } from "@/lib/supabase-api";
 import { DOMAIN_RAMPS, TYPE_TO_DOMAIN } from "@/lib/constants";
+import { mapEnrichmentRow } from "@/lib/enrichment/enrich";
 import Header from "@/components/layout/Header";
 import EventHeader from "@/components/event-detail/EventHeader";
 import MetadataGrid from "@/components/event-detail/MetadataGrid";
@@ -9,7 +10,12 @@ import AISummary from "@/components/event-detail/AISummary";
 import WeatherPanel from "@/components/event-detail/WeatherPanel";
 import ReliefWebPanel from "@/components/event-detail/ReliefWebPanel";
 import UpdateTimeline from "@/components/event-detail/UpdateTimeline";
-import type { EventDetail } from "@/lib/types";
+import NewsPanel from "@/components/event-detail/NewsPanel";
+import WikipediaPanel from "@/components/event-detail/WikipediaPanel";
+import SimilarEvents from "@/components/event-detail/SimilarEvents";
+import SourceLink from "@/components/event-detail/SourceLink";
+import EnrichmentProvider from "@/components/event-detail/EnrichmentProvider";
+import type { EventDetail, EventEnrichment } from "@/lib/types";
 
 import dynamicImport from "next/dynamic";
 const EventMap = dynamicImport(() => import("@/components/event-detail/EventMap"), {
@@ -63,11 +69,10 @@ function ErrorState({ message }: { message: string }) {
 }
 
 export default async function EventPage({ params }: EventPageProps) {
-  const { data: raw, error } = await supabase
-    .from("events")
-    .select("*")
-    .eq("id", params.id)
-    .maybeSingle();
+  const [{ data: raw, error }, { data: enrichmentRaw }] = await Promise.all([
+    supabase.from("events").select("*").eq("id", params.id).maybeSingle(),
+    supabase.from("event_enrichment").select("*").eq("event_id", params.id).maybeSingle(),
+  ]);
 
   if (error) {
     return <ErrorState message="Could not connect to the database. Try again in a moment." />;
@@ -95,7 +100,12 @@ export default async function EventPage({ params }: EventPageProps) {
     rawData: (raw.raw_data ?? {}) as Record<string, unknown>,
     aiSummary: raw.ai_summary ?? null,
     aiSummaryGeneratedAt: raw.ai_summary_generated_at ?? null,
+    sourceUrl: raw.source_url ?? null,
   };
+
+  const enrichment: EventEnrichment | null = enrichmentRaw
+    ? mapEnrichmentRow(enrichmentRaw as Record<string, unknown>)
+    : null;
 
   const domain = TYPE_TO_DOMAIN[event.type] ?? "infra";
   const domainColor = DOMAIN_RAMPS[domain][400];
@@ -104,42 +114,62 @@ export default async function EventPage({ params }: EventPageProps) {
     <div className="event-page">
       <Header />
 
-      <main className="pt-16 pb-24">
-        <div className="max-w-[1080px] mx-auto px-6">
-          <div className="mt-8 flex flex-col gap-10">
-            <div className="panel-reveal" style={{ animationDelay: "0ms" }}>
-              <EventHeader event={event} />
-            </div>
+      <EnrichmentProvider
+        initialEnrichment={enrichment}
+        eventId={event.id}
+        status={event.status}
+      >
+        <main className="pt-16 pb-24">
+          <div className="max-w-[1080px] mx-auto px-6">
+            <div className="mt-8 flex flex-col gap-10">
 
-            <div className="panel-reveal" style={{ animationDelay: "60ms" }}>
-              <AISummary
-                eventId={event.id}
-                initialSummary={event.aiSummary}
-                initialGeneratedAt={event.aiSummaryGeneratedAt}
-              />
-            </div>
+              <div className="panel-reveal" style={{ animationDelay: "0ms" }}>
+                <EventHeader event={event} />
+                <div className="mt-4">
+                  <SourceLink source={event.source} sourceUrl={event.sourceUrl} />
+                </div>
+              </div>
 
-            <div className="panel-reveal grid grid-cols-1 lg:grid-cols-2 gap-8" style={{ animationDelay: "120ms" }}>
-              <EventMap
-                lat={event.lat}
-                lon={event.lon}
-                title={event.title}
-                geometry={event.geometry}
-              />
-              <MetadataGrid event={event} accentColor={domainColor} />
-            </div>
+              <div className="panel-reveal" style={{ animationDelay: "60ms" }}>
+                <AISummary
+                  eventId={event.id}
+                  initialSummary={event.aiSummary}
+                  initialGeneratedAt={event.aiSummaryGeneratedAt}
+                />
+              </div>
 
-            <div className="panel-reveal grid grid-cols-1 lg:grid-cols-2 gap-8" style={{ animationDelay: "180ms" }}>
-              <WeatherPanel lat={event.lat} lon={event.lon} accentColor={domainColor} />
-              <ReliefWebPanel country={event.country} accentColor={domainColor} />
-            </div>
+              <div className="panel-reveal grid grid-cols-1 lg:grid-cols-2 gap-8" style={{ animationDelay: "120ms" }}>
+                <EventMap
+                  lat={event.lat}
+                  lon={event.lon}
+                  title={event.title}
+                  geometry={event.geometry}
+                />
+                <MetadataGrid event={event} accentColor={domainColor} />
+              </div>
 
-            <div className="panel-reveal" style={{ animationDelay: "240ms" }}>
-              <UpdateTimeline eventId={event.id} accentColor={domainColor} />
+              <div className="panel-reveal grid grid-cols-1 lg:grid-cols-2 gap-8" style={{ animationDelay: "180ms" }}>
+                <NewsPanel accentColor={domainColor} />
+                <ReliefWebPanel country={event.country} accentColor={domainColor} />
+              </div>
+
+              <div className="panel-reveal grid grid-cols-1 lg:grid-cols-2 gap-8" style={{ animationDelay: "210ms" }}>
+                <WeatherPanel lat={event.lat} lon={event.lon} accentColor={domainColor} />
+                <WikipediaPanel accentColor={domainColor} />
+              </div>
+
+              <div className="panel-reveal" style={{ animationDelay: "240ms" }}>
+                <UpdateTimeline eventId={event.id} accentColor={domainColor} />
+              </div>
+
+              <div className="panel-reveal" style={{ animationDelay: "270ms" }}>
+                <SimilarEvents accentColor={domainColor} />
+              </div>
+
             </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </EnrichmentProvider>
     </div>
   );
 }

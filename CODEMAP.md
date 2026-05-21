@@ -49,7 +49,8 @@ Conventions:
 - `app/src/app/api/debug/route.ts` — env-vars + sample-query echo for diagnostics.
 
 ### Lib (server-safe + client-safe utilities)
-- `app/src/lib/supabase-api.ts` — single Supabase JS client used by every API route + server component. Publishable key, no auth persistence.
+- `app/src/lib/supabase-api.ts` — read-only Supabase client (publishable key). Used by API routes + server components for SELECT queries.
+- `app/src/lib/supabase-write.ts` — write-capable Supabase client (service role key, bypasses RLS). Server-only. Used by summarize + enrich routes to cache AI output. Returns null if key not set.
 - `app/src/lib/api.ts` — client-side fetch helpers (relative URLs, no-store). One function per API route.
 - `app/src/lib/types.ts` — all shared TS types: enums, EventSummary, EventDetail, FilterState, WeatherData, etc.
 - `app/src/lib/constants.ts` — TYPE_COLORS, TYPE_LABELS, SEVERITY_SCALE, SOURCE_LABELS, WMO_WEATHER_CODES.

@@ -43,6 +43,7 @@ EXPECTED_EVENT_COLUMNS = {
     "population_exposure",
     "event_group_id",
     "satellite_image_url",
+    "source_url",
 }
 
 
@@ -123,11 +124,11 @@ def upsert_event(event: dict[str, Any]) -> tuple[bool, dict[str, Any] | None]:
                 """
                 INSERT INTO events (
                     id, external_id, source, type, title, description, severity, status,
-                    lat, lon, geometry, country, region, started_at, raw_data,
+                    lat, lon, geometry, country, region, started_at, raw_data, source_url,
                     updated_at, created_at
                 ) VALUES (
                     gen_random_uuid(), %s, %s, %s, %s, %s, %s, %s,
-                    %s, %s, %s::jsonb, %s, %s, %s, %s::jsonb,
+                    %s, %s, %s::jsonb, %s, %s, %s, %s::jsonb, %s,
                     NOW(), NOW()
                 )
                 ON CONFLICT (source, external_id) DO UPDATE SET
@@ -141,6 +142,7 @@ def upsert_event(event: dict[str, Any]) -> tuple[bool, dict[str, Any] | None]:
                     country = EXCLUDED.country,
                     region = EXCLUDED.region,
                     raw_data = EXCLUDED.raw_data,
+                    source_url = COALESCE(EXCLUDED.source_url, events.source_url),
                     updated_at = NOW()
                 RETURNING id, external_id, source
                 """,
@@ -159,6 +161,7 @@ def upsert_event(event: dict[str, Any]) -> tuple[bool, dict[str, Any] | None]:
                     event.get("region"),
                     event["started_at"],
                     raw_data_json,
+                    event.get("source_url"),
                 ),
             )
             result = cur.fetchone()

@@ -4,6 +4,12 @@
  * Hard 8-second timeout to stay well under Vercel's 10s serverless limit.
  */
 
+interface GroundingSources {
+  newsTitles: string[];
+  wikipediaSummary: string | null;
+  reliefwebTitles: string[];
+}
+
 interface EventContext {
   title: string;
   type: string;
@@ -69,6 +75,57 @@ Started: ${event.startedAt}`;
     } else {
       console.error("Gemini API error:", error);
     }
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+export async function generateGroundedSummary(
+  event: EventContext,
+  sources: GroundingSources
+): Promise<string | null> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+
+  const sourceBlock = [
+    ...sources.newsTitles.map((t, i) => `[${i + 1}] News: ${t}`),
+    ...(sources.wikipediaSummary ? [`[W] Wikipedia: ${sources.wikipediaSummary}`] : []),
+    ...sources.reliefwebTitles.map((t, i) => `[R${i + 1}] ReliefWeb: ${t}`),
+  ].join("\n");
+
+  const prompt = `You are a disaster intelligence analyst. Using ONLY the provided sources below, write exactly 3 concise sentences summarizing this event's situation, scale, and impact. Cite sources inline by their bracket label (e.g. [1], [W]). Do not assert any fact not grounded in the sources.
+
+Event: ${event.title}
+Type: ${event.type}
+Severity: ${event.severity ?? "Unknown"}
+Location: ${event.country ?? "Unknown"} (${event.lat.toFixed(4)}, ${event.lon.toFixed(4)})
+Started: ${event.startedAt}
+
+Sources:
+${sourceBlock || "No sources available — state that information is limited."}`;
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.2, maxOutputTokens: 300, topP: 0.8 },
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) return null;
+    const data = await response.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    return typeof text === "string" ? text.trim() : null;
+  } catch {
     return null;
   } finally {
     clearTimeout(timeoutId);
